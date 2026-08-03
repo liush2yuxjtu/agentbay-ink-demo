@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>AgentBay LAN Console</title>
+  <style nonce="__CSP_NONCE__">
+    :root {
+      color-scheme: dark;
+      --bg: #090b0f;
+      --panel: #10141b;
+      --panel-2: #151a22;
+      --line: #29303a;
+      --text: #eef2f7;
+      --muted: #8c97a7;
+      --cyan: #66d9ef;
+      --blue: #78a9ff;
+      --green: #55d68b;
+      --yellow: #f0c36b;
+      --red: #ff7171;
+      --radius: 14px;
+      --shadow: 0 18px 50px rgba(0, 0, 0, .28);
+    }
+    * { box-sizing: border-box; }
+    html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    button, textarea, input { font: inherit; }
+    button { min-height: 42px; }
+    button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+    [hidden] { display: none !important; }
+    .shell { width: min(1500px, 100%); min-height: 100vh; margin: auto; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between; gap: 18px;
+      padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius);
+      background: var(--panel); box-shadow: var(--shadow);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .mark { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid #2c8495; border-radius: 9px; color: var(--cyan); background: #0b1b20; }
+    h1 { margin: 0; font-size: 16px; line-height: 1.2; letter-spacing: .05em; text-wrap: balance; }
+    .sub { color: var(--muted); font-size: 12px; }
+    .pills { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+    .pill { border: 1px solid var(--line); border-radius: 999px; padding: 5px 9px; color: var(--muted); background: #0c1016; white-space: nowrap; }
+    .pill.live { color: var(--green); border-color: #275b3d; }
+    .layout { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(300px, .85fr); gap: 14px; }
+    .card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); overflow: hidden; }
+    .card-head { min-height: 46px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+    .card-head h2 { margin: 0; font-size: 12px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+    .chat-card { min-height: 640px; display: grid; grid-template-rows: auto 1fr auto; }
+    .conversation { overflow: auto; padding: 18px; scroll-behavior: smooth; }
+    .message { display: grid; grid-template-columns: 60px minmax(0, 1fr); gap: 10px; padding: 11px 0; border-bottom: 1px solid rgba(41, 48, 58, .62); }
+    .message:last-child { border-bottom: 0; }
+    .role { font-size: 11px; font-weight: 750; letter-spacing: .06em; padding-top: 2px; }
+    .message.user .role { color: var(--cyan); }
+    .message.assistant .role { color: var(--green); }
+    .message.system .role { color: var(--yellow); }
+    .message p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; text-wrap: pretty; }
+    .composer { padding: 12px; border-top: 1px solid var(--line); background: #0c1015; }
+    .composer-row { display: flex; align-items: flex-end; gap: 10px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    textarea {
+      flex: 1; min-height: 48px; max-height: 160px; resize: vertical; padding: 12px 13px;
+      color: var(--text); border: 1px solid #33404d; border-radius: 10px; background: var(--panel-2);
+    }
+    textarea::placeholder { color: #657183; }
+    .button {
+      border: 1px solid #2e7d8d; border-radius: 10px; padding: 10px 14px; cursor: pointer;
+      color: #dffbff; background: #12323a;
+      transition-property: transform, background-color, border-color; transition-duration: 140ms; transition-timing-function: ease-out;
+    }
+    .button:hover { background: #17434d; border-color: var(--cyan); }
+    .button:active { transform: scale(.97); }
+    .button:disabled { cursor: not-allowed; opacity: .45; transform: none; }
+    .button.secondary { color: var(--muted); background: transparent; border-color: var(--line); }
+    .button.danger { color: #ffdede; border-color: #693737; background: #251315; }
+    .hints { margin-top: 9px; color: var(--muted); font-size: 11px; }
+    .side { min-height: 0; display: flex; flex-direction: column; gap: 14px; }
+    .metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .metric { padding: 14px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .metric:nth-child(2n) { border-right: 0; }
+    .metric:nth-last-child(-n+2) { border-bottom: 0; }
+    .metric strong { display: block; font-size: 20px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+    .metric span { color: var(--muted); font-size: 11px; }
+    .sessions, .trace { margin: 0; padding: 8px 14px 13px; list-style: none; }
+    .sessions li { padding: 9px 0; border-bottom: 1px solid var(--line); }
+    .sessions li:last-child { border-bottom: 0; }
+    .session-id { display: block; overflow: hidden; text-overflow: ellipsis; color: var(--green); }
+    .session-meta { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+    .trace-card { flex: 1; min-height: 260px; }
+    .trace li { position: relative; padding: 8px 0 8px 24px; color: #cbd3de; }
+    .trace li::before { content: "✓"; position: absolute; left: 0; color: var(--green); }
+    .trace li.active::before { content: "◆"; color: var(--cyan); }
+    .trace li + li::after { content: ""; position: absolute; left: 5px; top: -8px; width: 1px; height: 16px; background: var(--line); }
+    .empty { padding: 18px 14px; color: var(--muted); }
+    .statusline { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 11px; background: #0d1117; }
+    .statusline strong { color: var(--green); font-variant-numeric: tabular-nums; }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
+    .button.compact { min-height: 34px; padding: 6px 10px; }
+    .command-list { margin: 0; padding: 6px 14px 12px; list-style: none; }
+    .command-list li { display: grid; grid-template-columns: minmax(190px, auto) 1fr; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+    .command-list li:last-child { border-bottom: 0; }
+    .command-fill { min-height: 34px; padding: 5px 8px; border: 1px solid transparent; border-radius: 7px; color: var(--cyan); background: transparent; cursor: pointer; text-align: left; }
+    .command-fill:hover { border-color: #2e7d8d; background: #0d242a; }
+    .command-list span { color: var(--muted); font-size: 11px; }
+    .preview-body { display: grid; gap: 10px; padding: 14px; }
+    .preview-url { color: var(--cyan); overflow-wrap: anywhere; }
+    .preview-meta { color: var(--muted); font-size: 11px; }
+    .preview-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .button-link { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 10px 14px; border: 1px solid #2e7d8d; border-radius: 10px; color: #dffbff; background: #12323a; text-decoration: none; }
+    .button-link:hover { border-color: var(--cyan); background: #17434d; }
+    .button-link:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+    code { color: inherit; font: inherit; }
+    dialog { width: min(680px, calc(100% - 24px)); padding: 0; color: var(--text); border: 1px solid #3a4654; border-radius: var(--radius); background: var(--panel); box-shadow: var(--shadow); }
+    dialog::backdrop { background: rgba(2, 5, 9, .78); backdrop-filter: blur(4px); }
+    .guide { padding: 22px; }
+    .guide h2 { margin: 0 0 6px; font-size: 20px; }
+    .guide > p { margin: 0; color: var(--muted); }
+    .guide-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0; padding: 0; list-style: none; counter-reset: guide; }
+    .guide-steps li { min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-2); }
+    .guide-steps strong { display: block; margin-bottom: 6px; color: var(--cyan); }
+    .guide-steps p { margin: 0; color: var(--muted); font-size: 12px; }
+    .guide-actions { display: flex; justify-content: flex-end; gap: 8px; }
+    .closed-screen { min-height: 100vh; padding: 24px; display: grid; place-items: center; text-align: center; }
+    .closed-card { width: min(560px, 100%); padding: 28px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); box-shadow: var(--shadow); }
+    .closed-card h1 { margin-bottom: 10px; color: var(--green); }
+    .closed-card p { color: var(--muted); }
+    footer { color: #667181; font-size: 10px; text-align: center; overflow-wrap: anywhere; }
+    .error { color: var(--red) !important; }
+    @media (max-width: 900px) {
+      .shell { padding: 10px; }
+      .layout { grid-template-columns: 1fr; }
+      .chat-card { min-height: 68vh; }
+      .side { display: grid; grid-template-columns: 1fr; }
+      .topbar, .statusline { align-items: flex-start; flex-direction: column; }
+      .pills { justify-content: flex-start; }
+      .guide-steps { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 560px) {
+      .composer-row { align-items: stretch; flex-direction: column; }
+      .button { width: 100%; }
+      .message { grid-template-columns: 1fr; gap: 4px; }
+      .role { padding-top: 0; }
+      .command-list li { grid-template-columns: 1fr; gap: 2px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell" id="agent-root" data-testid="agent-root" data-agent-state="running">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark" aria-hidden="true">◆</div>
+        <div><h1>AGENTBAY / CLOUD AGENT CONSOLE</h1><div class="sub">隔离执行 · 共享会话 · 可信 LAN 直连（无登录）</div></div>
+      </div>
+      <div class="pills" aria-label="运行状态">
+        <span class="pill live" id="live-pill">● CONNECTING</span>
+        <span class="pill">gpt-5.6-luna · low</span>
+        <span class="pill">process visible</span>
+        <button class="button secondary compact" id="guide-open" type="button">新手指引</button>
+      </div>
+    </header>
+
+    <div class="statusline" role="status" aria-live="polite">
+      <span id="runtime-status">正在连接本机 Agent runtime…</span>
+      <strong id="bill-status">BSS 官方消费读取中…</strong>
+    </div>
+
+    <main class="layout">
+      <section class="card chat-card" aria-labelledby="conversation-title">
+        <div class="card-head">
+          <h2 id="conversation-title">Conversation / 共享单会话</h2>
+          <div class="toolbar">
+            <button class="button secondary command" type="button" data-command="/new">新会话</button>
+            <button class="button secondary command" type="button" data-command="/sandboxes">刷新沙盒</button>
+            <button class="button secondary command" type="button" data-command="/bill">刷新消费</button>
+            <button class="button danger" id="shutdown-all" type="button">关闭全部沙盒</button>
+            <button class="button secondary" id="exit-window" type="button">退出窗口</button>
+            <button class="button danger" id="abort" type="button" disabled>中止</button>
+          </div>
+        </div>
+        <div class="conversation" id="conversation" data-testid="agent-conversation" aria-live="polite"></div>
+        <form class="composer" id="composer">
+          <label class="sr-only" for="message">发送给共享 Agent</label>
+          <div class="composer-row">
+            <textarea id="message" name="message" data-testid="agent-prompt" maxlength="4000" required placeholder="输入问题；代码和命令只会在 AgentBay 远程沙盒执行"></textarea>
+            <button class="button" id="send" data-testid="agent-send" type="submit">发送</button>
+          </div>
+          <div class="hints">Enter 发送 · Shift+Enter 换行 · 可直接输入 slash 命令；Web 恢复仅接受 Claude sessionId</div>
+        </form>
+      </section>
+
+      <aside class="side" aria-label="Agent 运行详情">
+        <section class="card" aria-labelledby="capacity-title">
+          <div class="card-head"><h2 id="capacity-title">Remote capacity</h2><span class="sub">Basic</span></div>
+          <div class="metrics">
+            <div class="metric"><strong id="running">—</strong><span>RUNNING</span></div>
+            <div class="metric"><strong id="parallel">—</strong><span>并行占用</span></div>
+            <div class="metric"><strong id="burn">—</strong><span>参考 / 小时</span></div>
+            <div class="metric"><strong id="coverage">—</strong><span>指标覆盖</span></div>
+          </div>
+          <ul class="sessions" id="sessions"><li class="empty">正在读取远端账户…</li></ul>
+        </section>
+
+        <section class="card" id="preview-card" hidden aria-labelledby="preview-title">
+          <div class="card-head"><h2 id="preview-title">Temporary app preview</h2><span class="sub" id="preview-state">READY</span></div>
+          <div class="preview-body">
+            <a class="preview-url" id="preview-url" target="_blank" rel="noreferrer"></a>
+            <div class="preview-meta" id="preview-meta"></div>
+            <div class="preview-actions">
+              <a class="button-link" id="preview-open" target="_blank" rel="noreferrer">打开应用</a>
+              <button class="button command" id="preview-takeover" type="button" data-command="/takeover">创建人工接管</button>
+              <a class="button-link" id="takeover-open" target="_blank" rel="noreferrer" hidden>打开接管浏览器</a>
+              <button class="button secondary" id="preview-feedback" type="button">反馈给 Agent</button>
+              <button class="button danger command" id="preview-stop" type="button" data-command="/stop-preview">停止预览</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="commands-title">
+          <div class="card-head"><h2 id="commands-title">Slash commands / 全部能力</h2><span class="sub">点击填入</span></div>
+          <ul class="command-list">
+            <li><button class="command-fill" type="button" data-fill="/help"><code>/help</code></button><span>显示完整帮助</span></li>
+            <li><button class="command-fill" type="button" data-fill="/new"><code>/new</code></button><span>归档当前会话并新建沙盒</span></li>
+            <li><button class="command-fill" type="button" data-fill="/sandboxes"><code>/sandboxes</code></button><span>刷新账户沙盒；别名 <code>/sessions</code></span></li>
+            <li><button class="command-fill" type="button" data-fill="/bill"><code>/bill</code></button><span>刷新 BSS 已入账消费</span></li>
+            <li><button class="command-fill" type="button" data-fill="/preview /tmp/todo-app"><code>/preview &lt;目录&gt;</code></button><span>发布 60 分钟临时应用链接</span></li>
+            <li><button class="command-fill" type="button" data-fill="/takeover"><code>/takeover</code></button><span>浏览器沙盒打开应用并允许人工接管</span></li>
+            <li><button class="command-fill" type="button" data-fill="/stop-preview"><code>/stop-preview</code></button><span>停止预览并回收浏览器沙盒</span></li>
+            <li><button class="command-fill" type="button" data-fill="/resume "><code>/resume &lt;session-id&gt;</code></button><span>使用归档 NOTE 中的恢复 ID；别名 <code>/rescue</code></span></li>
+            <li><button class="command-fill" type="button" data-fill="/exit"><code>/exit</code></button><span>归档并退出当前窗口；别名 <code>/quit</code></span></li>
+            <li><button class="command-fill" type="button" data-fill="/shutdown-all SHUTDOWN ALL"><code>/shutdown-all SHUTDOWN ALL</code></button><span>高风险：关闭账户全部 RUNNING 沙盒</span></li>
+          </ul>
+        </section>
+
+        <section class="card trace-card" aria-labelledby="trace-title">
+          <div class="card-head"><h2 id="trace-title">Execution trace</h2><span class="sub">可审计事件，不含隐藏思维</span></div>
+          <ol class="trace" id="trace"><li class="empty">发送问题后显示规划、工具调用与完成事件</li></ol>
+        </section>
+      </aside>
+    </main>
+
+    <footer>来源项目：agentBayDemo · /Users/liushiyuwin/projects/agentBayDemo · Pi session ID：019fc543-1e19-7728-a9f1-7a3aa077c0ce</footer>
+  </div>
+
+  <section class="closed-screen" id="closed-screen" tabindex="-1" hidden aria-labelledby="closed-title">
+    <div class="closed-card">
+      <h1 id="closed-title">✓ 当前 Web 会话已安全退出</h1>
+      <p>对话已归档、当前沙盒已销毁。浏览器安全策略可能阻止脚本关闭手动打开的标签页；现在可以直接关闭本窗口。</p>
+      <p id="closed-session" hidden></p>
+      <button class="button" id="reopen" type="button">重新打开控制台</button>
+    </div>
+  </section>
+
+  <dialog id="guide-dialog" aria-labelledby="guide-title">
+    <form class="guide" method="dialog">
+      <h2 id="guide-title">欢迎使用 AgentBay Cloud Agent</h2>
+      <p>三步开始；所有代码、命令和文件操作只会进入独立远程沙盒。本页面无登录，仅可在可信局域网分享。</p>
+      <ol class="guide-steps">
+        <li><strong>1 · 提问</strong><p>在左侧输入任务。需要执行时，Agent 只调用 AgentBay MCP。</p></li>
+        <li><strong>2 · 打开预览</strong><p>前端任务完成后会出现临时应用卡；可直接分享应用链接，或创建浏览器接管。</p></li>
+        <li><strong>3 · 测试反馈</strong><p>同事可在自己的浏览器查看，也可接管云浏览器；点击“反馈给 Agent”继续迭代。</p></li>
+      </ol>
+      <div class="guide-actions">
+        <button class="button secondary" value="close" type="submit">稍后再看</button>
+        <button class="button" id="guide-close" data-testid="guide-close" value="start" type="submit">开始使用</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script nonce="__CSP_NONCE__">
+    const $ = (id) => document.getElementById(id);
+    const conversation = $('conversation');
+    const form = $('composer');
+    const input = $('message');
+    const send = $('send');
+    const abort = $('abort');
+    const shutdownAll = $('shutdown-all');
+    const exitWindowButton = $('exit-window');
+    const guideDialog = $('guide-dialog');
+    const closedScreen = $('closed-screen');
+    let lastMessages = '';
+    let lastTrace = '';
+    let lastPreview = '';
+    let requestPending = false;
+    let pollTimer;
+
+    function element(tag, className, text) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    }
+
+    function renderMessages(messages) {
+      const signature = JSON.stringify(messages || []);
+      if (signature === lastMessages) return;
+      const shouldStick = conversation.scrollHeight - conversation.scrollTop - conversation.clientHeight < 90;
+      lastMessages = signature;
+      conversation.replaceChildren(...(messages || []).map((message) => {
+        const row = element('article', `message ${message.role}`);
+        row.dataset.testid = 'agent-message';
+        row.dataset.messageId = String(message.id);
+        row.append(element('div', 'role', message.role === 'user' ? 'YOU' : message.role === 'assistant' ? 'AGENT' : 'NOTE'));
+        const text = element('p', '', message.text || '…');
+        if (message.role === 'assistant') text.dataset.testid = 'agent-final-response';
+        row.append(text);
+        return row;
+      }));
+      if (shouldStick) conversation.scrollTop = conversation.scrollHeight;
+    }
+
+    function renderTrace(steps, busy) {
+      const signature = JSON.stringify([steps || [], busy]);
+      if (signature === lastTrace) return;
+      lastTrace = signature;
+      if (!steps?.length) {
+        const empty = element('li', 'empty', '发送问题后显示规划、工具调用与完成事件');
+        $('trace').replaceChildren(empty);
+        return;
+      }
+      $('trace').replaceChildren(...steps.map((step, index) => element('li', busy && index === steps.length - 1 ? 'active' : '', step.text)));
+    }
+
+    function httpUrl(value) {
+      try {
+        const url = new URL(value);
+        return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+      } catch {
+        return '';
+      }
+    }
+
+    function renderPreview(preview) {
+      const signature = JSON.stringify(preview || null);
+      if (signature === lastPreview) return;
+      lastPreview = signature;
+      const card = $('preview-card');
+      const appUrl = preview && httpUrl(preview.url);
+      card.hidden = !appUrl;
+      if (!appUrl) return;
+      $('preview-url').href = appUrl;
+      $('preview-url').textContent = appUrl;
+      $('preview-open').href = appUrl;
+      $('preview-meta').textContent = `${preview.directory} · :${preview.port} · 到期 ${new Date(preview.expiresAt).toLocaleString('zh-CN')}`;
+      const takeoverUrl = httpUrl(preview.takeoverUrl);
+      const browserFallback = takeoverUrl === appUrl;
+      $('preview-state').textContent = browserFallback ? 'BROWSER' : 'DIRECT';
+      $('preview-open').textContent = browserFallback ? '打开并接管云浏览器' : '打开应用';
+      $('preview-takeover').hidden = Boolean(takeoverUrl);
+      $('takeover-open').hidden = !takeoverUrl || browserFallback;
+      if (takeoverUrl) $('takeover-open').href = takeoverUrl;
+    }
+
+    function renderSessions(usage) {
+      if (!usage) return;
+      $('running').textContent = `${usage.running}/${usage.parallelLimit}`;
+      $('parallel').textContent = `${usage.utilizationPercent}%`;
+      $('burn').textContent = `¥${usage.estimatedCnyPerHour.toFixed(2)}–${usage.estimatedCnyPerHourHigh.toFixed(2)}`;
+      $('coverage').textContent = `${usage.estimatedSessionCount}/${usage.running}`;
+      const rows = usage.sessions?.length ? usage.sessions.map((session) => {
+        const li = element('li');
+        li.append(element('span', 'session-id', `● ${session.sessionId}`));
+        const cost = session.estimatedCnyPerHour === undefined ? '指标暂不可用' : `${session.cpuCount}C/${session.memoryGiB}GiB · ¥${session.estimatedCnyPerHour.toFixed(2)}–${session.estimatedCnyPerHourHigh.toFixed(2)}/h`;
+        li.append(element('span', 'session-meta', `${session.imageId || 'unknown'} · ${cost}`));
+        return li;
+      }) : [element('li', 'empty', '当前账户没有 RUNNING 沙盒')];
+      $('sessions').replaceChildren(...rows);
+    }
+
+    async function poll() {
+      try {
+        const response = await fetch('/api/state', { cache: 'no-store' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const state = await response.json();
+        $('agent-root').dataset.agentState = state.sandboxState === 'error' ? 'error' : state.busy ? 'streaming' : 'completed';
+        $('runtime-status').textContent = state.status;
+        $('bill-status').textContent = state.billStatus;
+        $('live-pill').textContent = state.sandboxState === 'ready' ? '● LIVE' : state.sandboxState === 'error' ? '● ERROR' : state.sandboxState === 'destroyed' ? '○ STOPPED' : '● STARTING';
+        $('live-pill').classList.toggle('live', state.sandboxState === 'ready');
+        $('live-pill').classList.toggle('error', state.sandboxState === 'error');
+        setPending(Boolean(state.busy));
+        renderMessages(state.messages);
+        renderPreview(state.preview);
+        renderTrace(state.processSteps, state.busy);
+        renderSessions(state.accountUsage);
+      } catch (error) {
+        $('agent-root').dataset.agentState = 'error';
+        $('runtime-status').textContent = `连接失败：${error.message}`;
+        $('live-pill').textContent = '● OFFLINE';
+        $('live-pill').classList.add('error');
+      }
+    }
+
+    function setPending(value) {
+      requestPending = value;
+      if (value) $('agent-root').dataset.agentState = 'streaming';
+      send.disabled = value;
+      abort.disabled = !value;
+      input.disabled = value;
+      shutdownAll.disabled = value;
+      exitWindowButton.disabled = value;
+      document.querySelectorAll('.command, .command-fill').forEach((button) => { button.disabled = value; });
+    }
+
+    async function submitMessage(message) {
+      const response = await fetch('/api/message', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ message })
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.error || `HTTP ${response.status}`);
+      }
+      setPending(true);
+    }
+
+    async function postJson(path, body = {}) {
+      const options = {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body)
+      };
+      const response = await fetch(path, options);
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+      return result;
+    }
+
+    async function resumeSession(sessionId) {
+      setPending(true);
+      try {
+        const result = await postJson('/api/resume', { sessionId });
+        $('runtime-status').textContent = `已恢复 Claude 会话 ${result.sessionId}`;
+        await poll();
+      } catch (error) {
+        $('runtime-status').textContent = `恢复失败：${error.message}`;
+        setPending(false);
+      }
+    }
+
+    async function exitCurrentWindow() {
+      if (requestPending) return;
+      setPending(true);
+      try {
+        const result = await postJson('/api/exit');
+        if (result.sessionId) {
+          $('closed-session').hidden = false;
+          $('closed-session').textContent = `恢复 ID：${result.sessionId}`;
+        }
+        window.close();
+        setTimeout(() => {
+          document.querySelector('.shell').hidden = true;
+          closedScreen.hidden = false;
+          closedScreen.focus();
+          clearInterval(pollTimer);
+        }, 80);
+      } catch (error) {
+        $('runtime-status').textContent = `退出失败：${error.message}`;
+        setPending(false);
+      }
+    }
+
+    async function requestShutdownAll(defaultValue = '') {
+      const confirmation = window.prompt('高风险操作：这会关闭账户当前全部 RUNNING AgentBay 沙盒。请输入 SHUTDOWN ALL 继续：', defaultValue);
+      if (confirmation === null) return;
+      if (confirmation !== 'SHUTDOWN ALL') {
+        $('runtime-status').textContent = '确认短语不匹配，未关闭任何沙盒';
+        return;
+      }
+      setPending(true);
+      try {
+        const body = await postJson('/api/shutdown-all', { confirmation });
+        $('runtime-status').textContent = body.failures.length
+          ? `全量停机部分完成：${body.deleted}/${body.attempted} 已关闭`
+          : `全量停机完成：${body.deleted}/${body.attempted} 已关闭`;
+        await poll();
+      } catch (error) {
+        $('runtime-status').textContent = `全量停机失败：${error.message}`;
+        setPending(false);
+      }
+    }
+
+    async function dispatchLifecycleCommand(message) {
+      if (message === '/exit' || message === '/quit') {
+        await exitCurrentWindow();
+        return true;
+      }
+      const resume = message.match(/^\/(?:resume|rescue)(?:\s+(\S+))?$/);
+      if (resume) {
+        if (!resume[1] || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resume[1])) {
+          $('runtime-status').textContent = '用法：/resume <Claude sessionId>；Web 不接受宿主机路径';
+        } else {
+          await resumeSession(resume[1]);
+        }
+        return true;
+      }
+      if (message.startsWith('/shutdown-all')) {
+        if (message !== '/shutdown-all SHUTDOWN ALL') {
+          $('runtime-status').textContent = '用法：/shutdown-all SHUTDOWN ALL；仍需浏览器二次确认';
+        } else {
+          await requestShutdownAll('SHUTDOWN ALL');
+        }
+        return true;
+      }
+      return false;
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const message = input.value.trim();
+      if (!message || requestPending) return;
+      try {
+        input.value = '';
+        if (await dispatchLifecycleCommand(message)) return;
+        await submitMessage(message);
+        await poll();
+      } catch (error) {
+        $('runtime-status').textContent = `发送失败：${error.message}`;
+      }
+    });
+
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        form.requestSubmit();
+      }
+    });
+
+    document.querySelectorAll('.command').forEach((button) => button.addEventListener('click', async () => {
+      try { await submitMessage(button.dataset.command); await poll(); }
+      catch (error) { $('runtime-status').textContent = `命令失败：${error.message}`; }
+    }));
+
+    document.querySelectorAll('.command-fill').forEach((button) => button.addEventListener('click', () => {
+      input.value = button.dataset.fill;
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    }));
+
+    abort.addEventListener('click', async () => {
+      await postJson('/api/abort');
+      await poll();
+    });
+    exitWindowButton.addEventListener('click', exitCurrentWindow);
+    shutdownAll.addEventListener('click', () => requestShutdownAll());
+    $('preview-feedback').addEventListener('click', () => {
+      input.value = '预览反馈：';
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    });
+    $('reopen').addEventListener('click', () => location.reload());
+
+    const showGuide = () => { if (!guideDialog.open) guideDialog.showModal(); };
+    $('guide-open').addEventListener('click', showGuide);
+    guideDialog.addEventListener('close', () => {
+      try { localStorage.setItem('agentbay-guide-seen-v2', '1'); } catch {}
+      $('guide-open').focus();
+    });
+    try {
+      if (!localStorage.getItem('agentbay-guide-seen-v2')) showGuide();
+    } catch {
+      showGuide();
+    }
+
+    poll();
+    pollTimer = setInterval(poll, 750);
+  </script>
+</body>
+</html>

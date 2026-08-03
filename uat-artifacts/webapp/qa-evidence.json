@@ -1,0 +1,29 @@
+{
+  "status": "passed",
+  "url": "http://192.168.26.153:8787/",
+  "state_machine": [
+    "completed",
+    "streaming",
+    "completed",
+    "resumed",
+    "completed",
+    "fresh",
+    "completed"
+  ],
+  "checkpoint": "saved through /api/exit and restored through /api/resume",
+  "markers": [
+    "WEB_UAT_READY_20260803",
+    "WEB_UAT_FRESH_20260803"
+  ],
+  "screenshots": [
+    "uat-artifacts/webapp/web-final.png",
+    "uat-artifacts/webapp/web-fresh-final.png",
+    "uat-artifacts/webapp/web-initial.png",
+    "uat-artifacts/webapp/web-resumed.png",
+    "uat-artifacts/webapp/web-streaming.png"
+  ],
+  "video": "uat-artifacts/webapp/webapp-live-uat.webm",
+  "trace": "uat-artifacts/webapp/webapp-trace.zip",
+  "console_errors": [],
+  "request_failures": []
+}

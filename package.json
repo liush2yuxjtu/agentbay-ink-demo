@@ -1,0 +1,43 @@
+{
+  "name": "agentbay-ink-demo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ink TUI and LAN Web demo for Claude Agent SDK with per-session Alibaba Cloud AgentBay sandboxes.",
+  "license": "MIT",
+  "repository": "github:liush2yuxjtu/agentbay-ink-demo",
+  "homepage": "https://github.com/liush2yuxjtu/agentbay-ink-demo#readme",
+  "type": "module",
+  "scripts": {
+    "dev": "bash scripts/with-runtime.sh node --env-file-if-exists=.env --import tsx src/index.tsx",
+    "start": "npm run dev --",
+    "herdr": "bash scripts/start-herdr.sh",
+    "web": "bash scripts/with-runtime.sh node --env-file-if-exists=.env --import tsx src/web.ts",
+    "web:herdr": "bash scripts/start-web-herdr.sh",
+    "smoke": "npm run dev -- --smoke",
+    "rescue:smoke": "npm run dev -- --rescue-smoke",
+    "account:smoke": "npm run dev -- --account-smoke",
+    "shutdown-all": "bash scripts/with-runtime.sh node --env-file-if-exists=.env --import tsx src/shutdown-all.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "test:coverage": "node --import tsx --test --experimental-test-coverage test/*.test.ts",
+    "build": "tsc",
+    "check": "npm run typecheck && npm test && npm run build"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "0.3.220",
+    "ink": "7.1.1",
+    "ink-text-input": "6.0.0",
+    "react": "19.2.8",
+    "wuying-agentbay-sdk": "0.22.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "26.1.2",
+    "@types/react": "19.2.17",
+    "tsx": "4.23.1",
+    "typescript": "7.0.2"
+  }
+}

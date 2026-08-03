@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AgentBay Cloud Agent Demo · 会话交付报告</title>
+  <style>
+    :root {
+      --bg: #f7f7f3;
+      --surface: #ffffff;
+      --ink: #17191c;
+      --soft: #5c626a;
+      --rule: #dfe1dc;
+      --cyan: #087e8b;
+      --ok: #187447;
+      --warn: #a55b08;
+      --danger: #a33a36;
+      --mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #101214;
+        --surface: #181b1e;
+        --ink: #edf0f2;
+        --soft: #a7adb3;
+        --rule: #30353a;
+        --cyan: #62c3cc;
+        --ok: #67c58d;
+        --warn: #e2a757;
+        --danger: #e17a74;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--bg); color: var(--ink); }
+    body { margin: 0; font: 15px/1.55 var(--sans); }
+    main { width: min(1120px, calc(100% - 32px)); margin: 38px auto 72px; }
+    header { border-bottom: 2px solid var(--ink); padding-bottom: 22px; }
+    h1 { margin: 0 0 8px; font-size: clamp(30px, 5vw, 54px); line-height: 1.04; letter-spacing: -0.035em; }
+    h2 { margin: 0 0 16px; font-size: 21px; letter-spacing: -0.015em; }
+    h3 { margin: 0 0 6px; font-size: 15px; }
+    p { margin: 0 0 12px; }
+    a { color: var(--cyan); }
+    code, pre { font-family: var(--mono); }
+    code { font-size: .9em; }
+    .eyebrow { color: var(--cyan); font: 700 12px/1.3 var(--sans); letter-spacing: .12em; text-transform: uppercase; }
+    .tldr { max-width: 76ch; margin-top: 12px; color: var(--soft); font-size: 17px; }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 18px; color: var(--soft); font-size: 12px; }
+    .meta strong { color: var(--ink); }
+    section { padding: 28px 0; border-bottom: 1px solid var(--rule); }
+    .status-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; border: 1px solid var(--rule); background: var(--surface); }
+    .metric { padding: 16px; border-right: 1px solid var(--rule); }
+    .metric:last-child { border-right: 0; }
+    .metric b { display: block; font-size: 22px; line-height: 1.2; }
+    .metric span { color: var(--soft); font-size: 12px; }
+    .ok { color: var(--ok); }
+    .warn { color: var(--warn); }
+    .grid { display: grid; grid-template-columns: 1.35fr .65fr; gap: 28px; }
+    .architecture { background: var(--surface); border: 1px solid var(--rule); padding: 12px; }
+    svg { display: block; width: 100%; height: auto; color: var(--ink); }
+    .node { cursor: pointer; }
+    .node rect { fill: var(--surface); stroke: currentColor; stroke-width: 1.5; }
+    .node:hover rect, .node:focus rect { stroke: var(--cyan); stroke-width: 2.5; }
+    .node text, .rescue-node text { fill: var(--ink); font: 600 13px var(--sans); pointer-events: none; }
+    .rescue-node rect, .rescue-node path { fill: var(--surface); stroke: currentColor; stroke-width: 1.5; }
+    .edge { stroke: var(--soft); stroke-width: 1.5; }
+    .edge.remote { stroke: var(--cyan); stroke-width: 2.5; }
+    .detail-panel { border-left: 3px solid var(--cyan); padding: 4px 0 4px 16px; min-height: 96px; }
+    .detail-panel p { color: var(--soft); }
+    .timeline { position: relative; margin-left: 7px; }
+    .timeline::before { content: ""; position: absolute; left: 7px; top: 8px; bottom: 10px; width: 1px; background: var(--rule); }
+    .event { position: relative; display: grid; grid-template-columns: 28px 1fr; gap: 10px; padding-bottom: 17px; }
+    .dot { width: 15px; height: 15px; margin-top: 3px; border-radius: 50%; background: var(--bg); border: 3px solid var(--ok); z-index: 1; }
+    .event.pending .dot { border-color: var(--warn); }
+    .event p { color: var(--soft); margin: 2px 0 0; }
+    table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--rule); }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
+    th { color: var(--soft); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+    tr:last-child td { border-bottom: 0; }
+    .badge { display: inline-block; padding: 2px 7px; border: 1px solid currentColor; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .action { border: 1px solid var(--warn); padding: 18px; background: color-mix(in srgb, var(--warn) 5%, var(--surface)); }
+    .action pre { margin: 12px 0; padding: 12px; overflow-x: auto; border: 1px solid var(--rule); background: var(--bg); font-size: 12px; white-space: pre-wrap; }
+    .buttons { display: flex; flex-wrap: wrap; gap: 9px; }
+    button, .button-link { appearance: none; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); padding: 9px 13px; font: 650 13px var(--sans); cursor: pointer; text-decoration: none; border-radius: 2px; }
+    button.secondary, .button-link.secondary { background: transparent; color: var(--ink); }
+    button:hover, .button-link:hover { opacity: .82; }
+    button:focus-visible, .button-link:focus-visible, .node:focus-visible { outline: 3px solid color-mix(in srgb, var(--cyan) 45%, transparent); outline-offset: 3px; }
+    .files { columns: 2; column-gap: 36px; margin: 0; padding-left: 20px; }
+    .files li { break-inside: avoid; margin: 5px 0; font-family: var(--mono); font-size: 12px; }
+    .foot { padding-top: 22px; color: var(--soft); font-size: 12px; }
+    #toast { min-height: 20px; margin-top: 10px; color: var(--ok); font-weight: 650; }
+    @media (max-width: 760px) {
+      main { width: min(100% - 22px, 1120px); margin-top: 22px; }
+      .status-strip { grid-template-columns: 1fr 1fr; }
+      .metric:nth-child(2) { border-right: 0; }
+      .metric:nth-child(-n+2) { border-bottom: 1px solid var(--rule); }
+      .grid { grid-template-columns: 1fr; }
+      .files { columns: 1; }
+      th:nth-child(3), td:nth-child(3) { display: none; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">Pi session delivery · 2026-07-31</div>
+    <h1>Ink TUI × Claude Agent SDK × AgentBay</h1>
+    <p class="tldr">Web <code>/new</code> 现在真正切换显示上下文：旧会话先归档并销毁，随后消息列表被替换为唯一的新会话 NOTE，浏览器刷新也不会重新出现旧聊天。修复保持既有 Resume、临时预览和 Chrome HITL 能力不变。</p>
+    <div class="meta">
+      <span><strong>来源项目</strong> agentBayDemo</span>
+      <span><strong>绝对路径</strong> /Users/liushiyuwin/projects/agentBayDemo</span>
+      <span><strong>Pi session ID</strong> 019fab5a-d1e5-7fbf-9707-409bad19b291</span>
+      <span><strong>更新时间</strong> 2026-07-31 17:34:58 CST</span>
+    </div>
+  </header>
+
+  <section aria-labelledby="state-title">
+    <h2 id="state-title">当前交付状态</h2>
+    <div class="status-strip">
+      <div class="metric"><b class="ok">通过</b><span>TypeScript / Build</span></div>
+      <div class="metric"><b class="ok">23 / 23</b><span>新会话清屏、预览与生命周期测试</span></div>
+      <div class="metric"><b class="ok">0</b><span>npm audit 漏洞</span></div>
+      <div class="metric"><b class="ok">0 / 10</b><span>账户已全部清空</span></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="tui-location-title">
+    <h2 id="tui-location-title">TUI 在哪里</h2>
+    <table>
+      <tbody>
+        <tr><th>源码</th><td><code>/Users/liushiyuwin/projects/agentBayDemo/src/index.tsx</code></td></tr>
+        <tr><th>当前终端启动</th><td><code>npm start</code></td></tr>
+        <tr><th>Herdr 后台启动</th><td><code>npm run herdr</code></td></tr>
+        <tr><th>浏览器入口</th><td><code>http://127.0.0.1:7681</code></td></tr>
+        <tr><th>当前运行位置</th><td>本工作区当前可见的第 2 个 Herdr tab，标签为 <code>2 · AgentBay Demo</code>，工作目录为本项目</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px;color:var(--soft)">当前 Ink TUI 运行在本机/Herdr PTY；AgentBay 负责远程执行沙盒。它还没有被搬进 AgentBay 沙盒内部。</p>
+    <p style="margin-top:8px;color:var(--soft)">密钥检查：当前 Pi、launchd、<code>~/.env</code> 与项目 <code>.env</code> 均未持久设置 <code>AGENTBAY_API_KEY</code>；密钥只保存在权限 <code>0600</code> 的 <code>~/.config/agentbay/api_key</code>，由 <code>scripts/with-runtime.sh</code> 临时注入 TUI 子进程。</p>
+  </section>
+
+  <section aria-labelledby="architecture-title">
+    <h2 id="architecture-title">请求如何流动</h2>
+    <div class="grid">
+      <figure class="architecture">
+        <svg viewBox="0 0 760 260" role="img" aria-labelledby="flow-title flow-desc">
+          <title id="flow-title">AgentBay Cloud Agent Demo 请求架构</title>
+          <desc id="flow-desc">Herdr Web 输入进入 Ink TUI，再进入 Claude Agent SDK 和本机 CLIProxyAPI，工具调用只进入远程 AgentBay 沙盒。</desc>
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0 0 L10 5 L0 10 z" fill="currentColor"></path>
+            </marker>
+          </defs>
+          <line class="edge" x1="155" y1="72" x2="210" y2="72" marker-end="url(#arrow)"></line>
+          <line class="edge" x1="365" y1="72" x2="420" y2="72" marker-end="url(#arrow)"></line>
+          <line class="edge" x1="575" y1="72" x2="630" y2="72" marker-end="url(#arrow)"></line>
+          <line class="edge remote" x1="495" y1="105" x2="495" y2="160" marker-end="url(#arrow)"></line>
+          <g class="node" tabindex="0" data-key="herdr"><rect x="15" y="40" width="140" height="64" rx="5"></rect><text x="85" y="68" text-anchor="middle">Herdr Web</text><text x="85" y="88" text-anchor="middle">真实 PTY</text></g>
+          <g class="node" tabindex="0" data-key="ink"><rect x="210" y="40" width="155" height="64" rx="5"></rect><text x="287" y="68" text-anchor="middle">Ink TUI</text><text x="287" y="88" text-anchor="middle">prompt / streaming</text></g>
+          <g class="node" tabindex="0" data-key="sdk"><rect x="420" y="40" width="155" height="64" rx="5"></rect><text x="497" y="68" text-anchor="middle">Claude Agent SDK</text><text x="497" y="88" text-anchor="middle">resume / MCP</text></g>
+          <g class="node" tabindex="0" data-key="proxy"><rect x="630" y="40" width="115" height="64" rx="5"></rect><text x="687" y="68" text-anchor="middle">CLIProxyAPI</text><text x="687" y="88" text-anchor="middle">GPT‑5.6</text></g>
+          <g class="node" tabindex="0" data-key="agentbay"><rect x="395" y="160" width="205" height="72" rx="5"></rect><text x="497" y="190" text-anchor="middle">Alibaba Cloud AgentBay</text><text x="497" y="211" text-anchor="middle">1 session = 1 sandbox</text></g>
+          <text x="512" y="137" fill="var(--cyan)" font-size="11">MCP only</text>
+        </svg>
+        <figcaption style="color:var(--soft);font-size:12px;margin-top:8px">点击节点查看它承担的边界。</figcaption>
+      </figure>
+      <aside class="detail-panel" aria-live="polite">
+        <h3 id="detail-title">关键边界</h3>
+        <p id="detail-text">Claude Agent SDK 禁用了宿主机内置工具，只允许六个 AgentBay MCP 工具：远程 Bash、读/写文件、发布预览、浏览器接管和停止预览。</p>
+      </aside>
+    </div>
+  </section>
+
+  <section aria-labelledby="lan-title">
+    <h2 id="lan-title">LAN WebApp · 已运行</h2>
+    <div class="status-strip">
+      <div class="metric"><b class="ok">READY</b><span>共享 runtime</span></div>
+      <div class="metric"><b>8787</b><span>LAN 监听端口</span></div>
+      <div class="metric"><b class="ok">200</b><span>基础 URL / State</span></div>
+      <div class="metric"><b class="ok">DIRECT</b><span>无令牌直连</span></div>
+    </div>
+    <table style="margin-top:16px">
+      <tbody>
+        <tr><th>LAN 地址</th><td><code>http://192.168.26.153:8787/</code>；基础 URL 直接 HTTP 200</td></tr>
+        <tr><th>访问模式</th><td>可信 LAN 无登录；不生成 token、Cookie 或 <code>/tmp/agentbay-demo-web-url</code></td></tr>
+        <tr><th>共享模型</th><td>一个共享会话；同网段访问者看到并控制同一对话和执行轨迹</td></tr>
+        <tr><th>Web 能力</th><td>临时 App 预览、人工接管与反馈、全部 slash 命令、受限 resume、安全 exit、消费与账户级停机</td></tr>
+        <tr><th>真实 E2E</th><td><code>WEB_TRACE_OK</code>；AgentBay/bash 调用与完成均出现在浏览器轨迹</td></tr>
+      </tbody>
+    </table>
+    <div class="action" style="margin-top:16px">
+      <h3>分享给同一可信局域网队友</h3>
+      <p>直接发送基础 URL 即可。服务默认只绑定当前私有 LAN IPv4，并保留 CSP、JSON-only 同源写保护和高风险确认；无身份认证，因此不要把 8787 映射到公网。</p>
+      <div class="buttons">
+        <button class="secondary" id="copy-web-start">复制 Web 启动命令</button>
+        <button class="secondary" id="copy-web-share">复制 LAN 地址</button>
+        <button id="copy-web-open">复制本机打开命令</button>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="preview-title">
+    <h2 id="preview-title">临时前端预览 × 浏览器人工接管</h2>
+    <div class="status-strip">
+      <div class="metric"><b class="ok">READY</b><span>Todo App 预览</span></div>
+      <div class="metric"><b class="ok">BASIC</b><span>浏览器回退</span></div>
+      <div class="metric"><b class="ok">200</b><span>接管入口 HTTP</span></div>
+      <div class="metric"><b>60 min</b><span>固定预览 TTL</span></div>
+    </div>
+    <pre style="margin-top:16px">前端任务
+   │
+   ├─ browser_latest：生成 /tmp/todo-preview/index.html
+   ├─ localhost:30100：静态服务 + 健康检查
+   │
+   ├─ Pro/Ultra ── session.getLink(30100) ──► 直接 App URL
+   │
+   └─ Basic ── GetLink 受限 ──► 同一云浏览器打开 localhost
+                                  │
+                                  └─ resourceUrl ──► 人工查看 / 点击 / 输入</pre>
+    <table style="margin-top:16px">
+      <tbody>
+        <tr><th>为什么不是第二个沙盒</th><td>代码、HTTP 和 Browser 共用同一个 <code>browser_latest</code>；避免文件复制、额外并行占用和双重回收</td></tr>
+        <tr><th>自动工具</th><td><code>publish_preview</code> · <code>browser_takeover</code> · <code>stop_preview</code>；前端任务完成后不再只返回文件路径</td></tr>
+        <tr><th>安全发布</th><td>只允许 <code>/tmp</code> 或 <code>/home/wuying</code>、端口 30100–30199；拒绝符号链接、<code>.env*</code>/PEM/key 和超过 20 MiB 的目录</td></tr>
+        <tr><th>生命周期</th><td>普通会话 10 分钟 idle；预览激活后固定 60 分钟，到期、<code>/stop-preview</code>、exit 或信号统一清理</td></tr>
+        <tr><th>真实闭环</th><td><code>TODO_PREVIEW_FALLBACK_E2E</code> · <code>TODO_FEEDBACK_LOOP_PASS</code> · <code>PREVIEW_STOP_PASS</code> · <code>FINAL_TODO_PREVIEW_PASS</code> · <code>FINAL_PREVIEW_REPUBLISH_PASS</code> · <code>LOOP13_14_PREVIEW_READY</code> · <code>LOOP14_HTTP_PASS</code></td></tr>
+      </tbody>
+    </table>
+    <div class="action" style="margin-top:16px">
+      <h3>现在怎样交给同事测试</h3>
+      <p>Web 右侧出现 Temporary App Preview 卡后，点击“打开并接管云浏览器”；同事完成手测后点击“反馈给 Agent”继续迭代。链接是临时访问凭据，不写入报告。</p>
+      <div class="buttons">
+        <button class="secondary" id="copy-preview">复制 /preview 示例</button>
+        <button class="secondary" id="copy-stop-preview">复制停止命令</button>
+        <button id="copy-preview-open">复制打开控制台命令</button>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="web-command-title">
+    <h2 id="web-command-title">Slash 命令、Resume、Exit 与新手指引</h2>
+    <div class="status-strip">
+      <div class="metric"><b class="ok">CLEAN</b><span>/new 清空旧显示</span></div>
+      <div class="metric"><b class="ok">UUID</b><span>受限 Resume</span></div>
+      <div class="metric"><b class="ok">SAFE</b><span>归档后 Exit</span></div>
+      <div class="metric"><b class="ok">3 STEP</b><span>首次引导</span></div>
+    </div>
+    <table style="margin-top:16px">
+      <tbody>
+        <tr><th>完整命令</th><td><code>/help</code> · <code>/new</code> · <code>/sandboxes</code>/<code>/sessions</code> · <code>/bill</code> · <code>/preview</code> · <code>/takeover</code> · <code>/stop-preview</code> · <code>/resume</code>/<code>/rescue</code> · <code>/exit</code>/<code>/quit</code> · <code>/shutdown-all</code></td></tr>
+        <tr><th>新会话</th><td><code>/new</code> 先归档并销毁旧沙盒，再用唯一 NOTE 替换消息列表；浏览器刷新不会带回旧聊天</td></tr>
+        <tr><th>安全 Resume</th><td>只接受 Claude sessionId UUID，固定读取归档根目录；拒绝 <code>../../</code> 和任意宿主机路径</td></tr>
+        <tr><th>Exit</th><td>先确认 JSONL 归档、销毁当前 Web 沙盒，再调用 <code>window.close()</code>；浏览器阻止时显示安全回退页和恢复 ID</td></tr>
+        <tr><th>新手指引</th><td>首次访问自动打开原生 <code>&lt;dialog&gt;</code>；键盘可达、Esc 可关闭，顶部“新手指引”随时重看</td></tr>
+        <tr><th>真实验收</th><td><code>WEB_EXIT_API_PASS</code> → <code>WEB_RESUME_API_PASS</code> → <code>WEB_RESUME_CONTEXT_PASS</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section aria-labelledby="shutdown-title">
+    <h2 id="shutdown-title">账户级紧急停机 · 三入口已验收</h2>
+    <div class="status-strip">
+      <div class="metric"><b class="ok">PASS</b><span>LAN Web</span></div>
+      <div class="metric"><b class="ok">PASS</b><span>Ink TUI</span></div>
+      <div class="metric"><b class="ok">PASS</b><span>本机 CLI</span></div>
+      <div class="metric"><b>2 → 0</b><span>每次真实验收</span></div>
+    </div>
+    <div class="action" style="margin-top:16px">
+      <h3>⚠ 范围是整个 AgentBay 账户，不只是本 Demo</h3>
+      <p>确认后先完整分页快照并去重当前全部 <code>RUNNING</code> Session ID，再并发删除；这样不会因删第一页造成后续分页前移而漏项。快照后新建的沙盒不在本次范围内，需要再次确认。</p>
+      <pre>LAN：点击“关闭全部沙盒” → 输入 SHUTDOWN ALL
+TUI：/shutdown-all SHUTDOWN ALL
+CLI：npm run shutdown-all -- --confirm "SHUTDOWN ALL"</pre>
+      <div class="buttons">
+        <button class="secondary" id="copy-tui-shutdown">复制 TUI 停机命令</button>
+        <button id="copy-cli-shutdown">复制本机停机命令</button>
+      </div>
+    </div>
+    <table style="margin-top:16px">
+      <tbody>
+        <tr><th>确认门</th><td>三个入口均要求精确短语；LAN 写请求同源且必须 JSON，错误短语 400、跨站 403、忙碌 409</td></tr>
+        <tr><th>数据保护</th><td>LAN 与 TUI 先归档自己的 Claude JSONL；归档失败则取消该入口停机</td></tr>
+        <tr><th>失败处理</th><td>返回 <code>attempted</code> / <code>deleted</code> / <code>failures</code>；单项失败不会隐藏其他结果</td></tr>
+        <tr><th>跨入口状态</th><td>另一入口删除当前沙盒后，TUI/Web 刷新会切换为 <code>STOPPED</code>，不继续显示假 LIVE</td></tr>
+        <tr><th>真实证据</th><td><code>LAN_SHUTDOWN_ALL_PASS</code>、<code>SHUTDOWN_ALL_PASS</code>、<code>TUI_SHUTDOWN_ALL_PASS</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section aria-labelledby="account-title">
+    <h2 id="account-title">远端并行与已入账按量消费</h2>
+    <div class="status-strip">
+      <div class="metric"><b class="ok">Basic</b><span>当前权益包</span></div>
+      <div class="metric"><b class="ok">0 / 10</b><span>RUNNING / 并行上限</span></div>
+      <div class="metric"><b>0</b><span>当前活跃沙盒</span></div>
+      <div class="metric"><b>¥0.00</b><span>当前参考 / 小时</span></div>
+    </div>
+    <table style="margin-top:16px">
+      <tbody>
+        <tr><th>远端清单</th><td><code>AgentBay.list({}, page, 10, "RUNNING")</code> 分页读取整个账户，不只统计本 Demo</td></tr>
+        <tr><th>完整指标</th><td>启动和 <code>/sandboxes</code> 调用 Metrics；每 30 秒自动刷新只调用账户列表，不触碰具体会话</td></tr>
+        <tr><th>官方消费</th><td><code>DescribeInstanceBill</code> + <code>ProductCode=gws</code> + <code>SubscriptionType=PayAsYouGo</code> + NextToken 分页</td></tr>
+        <tr><th>状态行</th><td>启动自动读取；当前为 <code>BSS 2026-07 · 已入账按量消费 ¥0.00 · 运行中费用可能延迟</code></td></tr>
+        <tr><th>安全导出</th><td><code>/bill</code> 刷新 → <code>/tmp/agentbay-spend-2026-07.json</code>（0600）</td></tr>
+      </tbody>
+    </table>
+    <div class="action" style="margin-top:16px">
+      <h3>“已支付”不是“已消费”</h3>
+      <p><strong>已排除：</strong>账号中原价 ¥120.00、优惠后 ¥0.01 的积分包是 <code>SubscriptionOrder</code>，代表买了套餐，不代表沙盒资源花了 ¥0.01。</p>
+      <p><strong>状态行读取：</strong><code>DescribeInstanceBill</code> 官方定义为实例/计费项“消费汇总”。查询明确限定 <code>PayAsYouGo</code>，解析器也只接受 <code>PayAsYouGoBill</code>，所以展示的是已入账资源消费。</p>
+      <pre>aliyun bssopenapi DescribeInstanceBill \
+  --BillingCycle 2026-07 --Granularity MONTHLY \
+  --IsBillingItem true --IsHideZeroCharge false --MaxResults 300 \
+  --ProductCode gws --SubscriptionType PayAsYouGo</pre>
+      <p><strong>当前状态：</strong>账户盘点为 0/10，参考燃烧率 ¥0.00/小时；本次全量停机发现 0 个仍在运行的沙盒。BSS 已入账消费仍可能有延迟。</p>
+      <div class="buttons">
+        <button class="secondary" id="copy-sandboxes">复制 /sandboxes</button>
+        <button class="secondary" id="copy-bill">复制 /bill</button>
+        <a class="button-link" href="https://help.aliyun.com/zh/agentbay/product-overview/agentbay-billing-instructions" target="_blank" rel="noreferrer">官方计费说明</a>
+        <a class="button-link" href="https://help.aliyun.com/zh/user-center/developer-reference/api-bssopenapi-2017-12-14-describeinstancebill" target="_blank" rel="noreferrer">官方 DescribeInstanceBill</a>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="rescue-title">
+    <h2 id="rescue-title">六边形会话救援闭环</h2>
+    <figure class="architecture">
+      <svg viewBox="0 0 760 270" role="img" aria-labelledby="rescue-flow-title rescue-flow-desc">
+        <title id="rescue-flow-title">外部会话归档与恢复的 Ports and Adapters 架构</title>
+        <desc id="rescue-flow-desc">Ink 命令进入应用用例；应用通过 SessionArchivePort 保存到外部 JSONL，确认成功后销毁 AgentBay；resume 从同一 JSONL 创建新会话和新沙盒。</desc>
+        <defs><marker id="rescue-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"></path></marker></defs>
+        <line class="edge" x1="185" y1="85" x2="285" y2="85" marker-end="url(#rescue-arrow)"></line>
+        <line class="edge" x1="475" y1="85" x2="575" y2="85" marker-end="url(#rescue-arrow)"></line>
+        <line class="edge remote" x1="380" y1="130" x2="380" y2="190" marker-end="url(#rescue-arrow)"></line>
+        <line class="edge" x1="575" y1="120" x2="475" y2="120" marker-end="url(#rescue-arrow)"></line>
+        <g class="rescue-node"><rect x="25" y="48" width="160" height="74" rx="5"></rect><text x="105" y="78" text-anchor="middle">Inbound adapter</text><text x="105" y="99" text-anchor="middle">/exit · /resume</text></g>
+        <g class="rescue-node"><path d="M315 42 H445 L480 85 L445 128 H315 L280 85 Z"></path><text x="380" y="77" text-anchor="middle">Application</text><text x="380" y="98" text-anchor="middle">SessionArchivePort</text></g>
+        <g class="rescue-node"><rect x="575" y="48" width="160" height="74" rx="5"></rect><text x="655" y="78" text-anchor="middle">Outbound adapter</text><text x="655" y="99" text-anchor="middle">Claude JSONL · 0600</text></g>
+        <g class="rescue-node"><rect x="280" y="190" width="200" height="60" rx="5"></rect><text x="380" y="216" text-anchor="middle">AgentBay sandbox</text><text x="380" y="237" text-anchor="middle">save first → destroy</text></g>
+        <text x="503" y="70" fill="var(--cyan)" font-size="11">append</text><text x="505" y="138" fill="var(--cyan)" font-size="11">load / resume</text>
+      </svg>
+    </figure>
+    <table style="margin-top:16px">
+      <tbody>
+        <tr><th>手动保存并销毁</th><td><code>/exit</code> 或 <code>/quit</code></td></tr>
+        <tr><th>从外部文件救援</th><td><code>/resume /tmp/agentbay-demo-sessions/&lt;session-id&gt;.jsonl</code>；<code>/rescue</code> 是别名</td></tr>
+        <tr><th>销毁内容</th><td>旧 AgentBay 沙盒 + 本地临时 <code>CLAUDE_CONFIG_DIR</code></td></tr>
+        <tr><th>保留内容</th><td>外部 Claude JSONL 对话文件；Demo 默认保存在 <code>/tmp</code></td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px;color:var(--soft)">边界：Resume 恢复对话，不恢复旧 AgentBay 沙盒文件系统；远程工件需要另做快照。</p>
+    <div class="buttons"><button class="secondary" id="copy-exit">复制 /exit</button><button class="secondary" id="copy-resume">复制 /resume 示例</button></div>
+  </section>
+
+  <section aria-labelledby="timeline-title">
+    <h2 id="timeline-title">本次会话从头到尾</h2>
+    <div class="timeline">
+      <div class="event"><span class="dot"></span><div><h3>1 · 对齐需求与本机事实</h3><p>将 “TUA / Inc TUA” 按 Ink TUI 理解；读取 Herdr 本机说明和 <code>herdr -h</code>，确认网页端本质是现有 PTY/HTML 服务，不再重复造 Web 服务。</p></div></div>
+      <div class="event"><span class="dot"></span><div><h3>2 · 发现并复用 CLIProxyAPI</h3><p>确认本机代理监听 <code>127.0.0.1:8318</code>，模型路由包含 <code>gpt-5.6-luna</code>；安全 helper 可注入 token，项目无需保存秘密。</p></div></div>
+      <div class="event"><span class="dot"></span><div><h3>3 · 初始化 TypeScript / NPM 项目</h3><p>锁定当前稳定包：Claude Agent SDK 0.3.220、Ink 7.1.1、AgentBay SDK 0.22.0、React 19.2.8、TypeScript 7.0.2。</p></div></div>
+      <div class="event"><span class="dot"></span><div><h3>4 · 完成 Cloud Agent 主链路</h3><p>实现流式文本、多轮 resume、受限 MCP、<code>effort=low</code> 与 <code>thinking=disabled</code>；SDK 子进程只收到必要环境变量。</p></div></div>
+      <div class="event"><span class="dot"></span><div><h3>5 · 完成即用即销毁沙盒</h3><p>早期每个对话创建一个 <code>code_latest</code>；加入预览后统一为 <code>browser_latest</code>。<code>/new</code>、退出与信号主动删除；普通 idle 10 分钟、预览 TTL 60 分钟。</p></div></div>
+      <div class="event"><span class="dot"></span><div><h3>6 · 验证 Herdr 网页到远程沙盒的完整交互</h3><p>在 <code>--no-focus</code> 后台 tab 启动 TUI，经 Herdr PTY 发送 prompt，GPT‑5.6 调用 AgentBay 后返回 <code>HERDR_AGENTBAY_HELLO</code>；随后发送 <code>/quit</code>、确认销毁并清理临时 tab。</p></div></div>
+      <div class="event"><span class="dot"></span><div><h3>7 · AgentBay 真实远程验收完成</h3><p>AgentBay AIO 在 <code>code_latest</code> 返回 <code>AGENTBAY_REMOTE_HELLO</code>；完整 Demo 返回 <code>SMOKE_PASS AGENTBAY_HELLO</code>，随后主动删除并确认 <code>RUNNING_DEMO_SANDBOXES=0</code>。</p></div></div>
+      <div class="event"><span class="dot"></span><div><h3>8 · 收紧日志与工具权限</h3><p>关闭 AgentBay SDK 详细控制台日志，统一脱敏错误中的凭据和内部标识；移除会绕过权限回调的自动允许规则，确保每个 MCP 调用都经过明确的 <code>canUseTool</code> 白名单。</p></div></div>
+      <div class="event"><span class="dot"></span><div><h3>9 · 将 TUI 托管到当前第 2 个 Herdr tab</h3><p>使用显式 <code>--no-focus</code> 在项目工作目录创建后台 tab，启动 <code>npm start</code>，并确认界面显示 AgentBay 已就绪与 10 分钟空闲自动销毁。</p></div></div>
+      <div class="event"><span class="dot"></span><div><h3>10 · 用六边形架构加入外部会话存储</h3><p>Ink 命令作为入站适配器；<code>archiveAndDestroy</code> 为应用用例；<code>SessionArchivePort</code> 隔离存储；原子 JSONL 文件适配器实现 Demo 的 <code>/tmp</code> 外部空间；组合根注入 SDK、归档和沙盒。</p></div></div>
+      <div class="event"><span class="dot"></span><div><h3>11 · 真正摧毁后再救援</h3><p>Herdr 手工流程先记录唯一标记，输入 <code>/exit</code> 后确认外部文件仍在且权限 <code>0600</code>、运行沙盒为 0、本地临时会话目录为 0；重启 TUI 后从 JSONL resume，新沙盒准确回答旧标记。</p></div></div>
+      <div class="event"><span class="dot"></span><div><h3>12 · 远端账户级沙盒盘点</h3><p>接入 AgentBay 官方 list/getMetrics：分页读取全账户 RUNNING 会话，在 TUI 显示 Basic 1/10、完整 ID、状态、镜像、2C/4GiB 与 ¥0.44–0.60/h。自动刷新只 list，避免可能影响空闲回收。</p></div></div>
+      <div class="event"><span class="dot"></span><div><h3>13 · 区分支付与消费</h3><p>先通过 BSS 找到 ¥0.01 套餐行；经用户澄清后确认它是 <code>SubscriptionOrder</code> 而不是资源消费。实现改为只查询和解析 <code>PayAsYouGo</code> / <code>PayAsYouGoBill</code>，回归测试锁定套餐必须被排除。</p></div></div>
+      <div class="event"><span class="dot"></span><div><h3>14 · 官方消费进入 TUI 状态行</h3><p>TUI 启动自动调用官方消费汇总，底部持续显示当前账期已入账按量消费；<code>/bill</code> 手动刷新。Herdr 实测状态为 ¥0.00，并明确提示运行中费用可能延迟。</p></div></div>
+      <div class="event"><span class="dot"></span><div><h3>15 · 中间过程变成可审计轨迹</h3><p>保留 reasoning disabled，不尝试泄露私有思维；新增 SDK 消息映射与 <code>EXECUTION TRACE</code>：规划标签、MCP 初始化、工具调用/完成、最终生成、turn 时长和归档。真实 TUI 返回 <code>PROCESS_TRACE_OK</code>。</p></div></div>
+      <div class="event"><span class="dot"></span><div><h3>16 · 最简 LAN WebApp</h3><p>用 Node 标准库建立单共享 runtime 和响应式静态页面，无新增依赖。初版使用分享令牌；随后按截图反馈改为可信 LAN 直连，并保留 CSP、输入上限和同源写保护。</p></div></div>
+      <div class="event"><span class="dot"></span><div><h3>17 · LAN 与真实 AgentBay 联调</h3><p>Web runtime、远程 AgentBay 工具和执行轨迹通过真实 E2E；随后按最新要求移除分享令牌，基础 URL 与状态 API 均直接 200，旧 token 文件已删除。</p></div></div>
+      <div class="event"><span class="dot"></span><div><h3>18 · 账户级全量停机闭环</h3><p>新增统一应用用例与 LAN/TUI/CLI 三入口。RED 阶段分别是方法不存在、TUI 被当 prompt、API 404；GREEN 后完成三轮真实 2→0 验收、部分失败汇总与跨入口 STOPPED 检测。</p></div></div>
+      <div class="event"><span class="dot"></span><div><h3>19 · Web 全命令、恢复、退出与新手引导</h3><p>新增完整 slash 命令面板和原生 onboarding dialog；resumeFromId 只允许归档根目录 UUID。真实执行 exit 归档销毁、按返回 ID resume 新沙盒，并准确找回旧口令。</p></div></div>
+      <div class="event"><span class="dot"></span><div><h3>20 · Todo App 预览与人工接管</h3><p>RED 首先证明当前 Basic 的 <code>GetLink</code> 仅限 Pro/Ultra；随后以同一 <code>browser_latest</code> 打开 localhost App 并返回 resourceUrl。真实 Todo 完成 HTTP 200、系统浏览器接管、反馈迭代、停止回收和最终重发。</p></div></div>
+      <div class="event"><span class="dot"></span><div><h3>21 · 新会话显示隔离</h3><p>定位到 <code>/new</code> 仍调用追加型 <code>note()</code>，导致旧消息留在共享快照。修复后归档成功即以新会话 NOTE 原子替换消息列表；增加 RED→GREEN 回归和真实刷新 E2E。</p></div></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="verify-title">
+    <h2 id="verify-title">验证证据</h2>
+    <table>
+      <thead><tr><th>检查</th><th>结果</th><th>证据</th></tr></thead>
+      <tbody>
+        <tr><td>TypeScript</td><td><span class="badge ok">PASS</span></td><td><code>tsc --noEmit</code></td></tr>
+        <tr><td>自动测试</td><td><span class="badge ok">23 / 23</span></td><td>新会话清屏 + 预览约束 + Basic 浏览器回退 + 生命周期 + LAN/session API</td></tr>
+        <tr><td>构建</td><td><span class="badge ok">PASS</span></td><td><code>dist/src/**</code>，包含 session ports/adapters 与组合根</td></tr>
+        <tr><td>依赖安全</td><td><span class="badge ok">PASS</span></td><td><code>npm audit</code>：0 vulnerabilities</td></tr>
+        <tr><td>GPT‑5.6 路由</td><td><span class="badge ok">PASS</span></td><td>SDK 返回 <code>CLOUD_AGENT_SDK_HELLO</code></td></tr>
+        <tr><td>Herdr TUI</td><td><span class="badge ok">PASS</span></td><td>网页/PTY prompt → GPT‑5.6 → AgentBay → <code>HERDR_AGENTBAY_HELLO</code> → 销毁</td></tr>
+        <tr><td>远程 AgentBay</td><td><span class="badge ok">PASS</span></td><td>AIO 与完整 SDK smoke 均通过；销毁后运行沙盒为 0</td></tr>
+        <tr><td>覆盖率</td><td><span class="badge ok">PASS</span></td><td>行 92.83% · 分支 80.38% · 函数 87.96%</td></tr>
+        <tr><td>自动救援</td><td><span class="badge ok">PASS</span></td><td>Monitor #6 与直接重跑均返回 <code>RESCUE_PASS</code>；first/rescued 两个测试沙盒均进入 destroyed</td></tr>
+        <tr><td>Herdr 手工救援</td><td><span class="badge ok">PASS</span></td><td>外部 JSONL → /exit → 0 沙盒/0 本地会话 → 重启 → /resume → 找回旧标记</td></tr>
+        <tr><td>远端账户盘点</td><td><span class="badge ok">PASS</span></td><td><code>SHUTDOWN_ALL_PASS attempted=0 deleted=0 failed=0</code>；复核 0/10、¥0.00/小时</td></tr>
+        <tr><td>官方按量消费</td><td><span class="badge ok">PASS</span></td><td><code>BILL_SPEND_PASS cycle=2026-07 gross_cny=0.00 charged_cny=0.00</code>；JSON 0600</td></tr>
+        <tr><td>执行轨迹</td><td><span class="badge ok">PASS</span></td><td><code>PROCESS_TRACE_OK</code>；tool start/done、turn、archive 均可回看</td></tr>
+        <tr><td>LAN Web</td><td><span class="badge ok">PASS</span></td><td>基础 URL 200、State 200、无 Cookie/令牌文件；跨站写 403；<code>WEB_TRACE_OK</code></td></tr>
+        <tr><td>Web Resume / Exit</td><td><span class="badge ok">PASS</span></td><td>exit 归档+销毁并返回 ID；resume 新沙盒；旧口令上下文准确找回</td></tr>
+        <tr><td>Web /new 清屏</td><td><span class="badge ok">PASS</span></td><td><code>WEB_NEW_CONVERSATION_E2E_PASS messages=1 old_history=false</code>；刷新后仍只有新 NOTE</td></tr>
+        <tr><td>临时 App / 接管</td><td><span class="badge ok">PASS</span></td><td>Basic 浏览器回退；最终 Todo 预览 + takeover 就绪，接管入口 HTTP 200 / 10,951 bytes</td></tr>
+        <tr><td>全量停机</td><td><span class="badge ok">PASS × 3</span></td><td>LAN、CLI、TUI 均真实关闭 2/2；账户 0/10；跨入口识别 STOPPED</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section aria-labelledby="human-title">
+    <h2 id="human-title">安全后续：轮换已粘贴的密钥</h2>
+    <div class="action">
+      <h3>验收已完成，但当前凭据曾出现在聊天记录中</h3>
+      <p>提供的密钥已按 <code>0600</code> 权限写入本机配置，值没有进入项目、报告或最终回复。由于原值曾粘贴到本次 Pi 会话，请在控制台创建替代密钥、禁用旧密钥，再用下面的隐藏输入命令覆盖本地文件。</p>
+      <pre id="setup-code">install -d -m 700 ~/.config/agentbay
+read -rsp 'New AgentBay API key: ' key; echo
+printf '%s' "$key" &gt; ~/.config/agentbay/api_key
+unset key
+chmod 600 ~/.config/agentbay/api_key</pre>
+      <div class="buttons">
+        <a class="button-link" href="https://agentbay.console.aliyun.com/service-management" target="_blank" rel="noreferrer">打开 AgentBay 控制台</a>
+        <button class="secondary" id="copy-setup">复制安全轮换命令</button>
+        <button class="secondary" id="copy-smoke">复制再次验收命令</button>
+        <button id="copy-followup">复制轮换完成 Prompt</button>
+      </div>
+      <div id="toast" role="status" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="files-title">
+    <h2 id="files-title">交付文件</h2>
+    <ul class="files">
+      <li>src/index.tsx</li>
+      <li>src/agent.ts</li>
+      <li>src/agent-process.ts</li>
+      <li>src/preview/application.ts</li>
+      <li>src/sandbox.ts</li>
+      <li>src/web.ts</li>
+      <li>src/web-http.ts</li>
+      <li>web/index.html</li>
+      <li>src/composition.ts</li>
+      <li>src/account/application.ts</li>
+      <li>src/account/aliyun-billing.ts</li>
+      <li>src/shutdown-all.ts</li>
+      <li>src/session/application.ts</li>
+      <li>src/session/commands.ts</li>
+      <li>src/session/file-session-archive.ts</li>
+      <li>test/preview.test.ts</li>
+      <li>test/sandbox.test.ts</li>
+      <li>test/session-rescue.test.ts</li>
+      <li>test/account-usage.test.ts</li>
+      <li>test/agent-process.test.ts</li>
+      <li>test/web-server.test.ts</li>
+      <li>docs/testing/preview-takeover.tdd.md</li>
+      <li>docs/testing/session-rescue.tdd.md</li>
+      <li>docs/testing/account-usage.tdd.md</li>
+      <li>docs/testing/lan-web-and-process.tdd.md</li>
+      <li>docs/testing/shutdown-all.tdd.md</li>
+      <li>scripts/with-runtime.sh</li>
+      <li>scripts/start-herdr.sh</li>
+      <li>scripts/start-web-herdr.sh</li>
+      <li>package.json</li>
+      <li>package-lock.json</li>
+      <li>tsconfig.json</li>
+      <li>.env.example</li>
+      <li>.gitignore</li>
+      <li>README.md</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="hosting-next-title">
+    <h2 id="hosting-next-title">官方 Hosting 文档后的下一步</h2>
+    <ol>
+      <li><strong>P0 · 把整个后端移入 AgentBay：</strong>每个会话沙盒内运行 Claude Agent SDK host 与其 <code>claude</code> 子进程，而不只是把 MCP 工具放进远程沙盒；Ink/Herdr 只保留为客户端。</li>
+      <li><strong>DONE · 每会话本地隔离：</strong>唯一临时 <code>CLAUDE_CONFIG_DIR</code>、<code>CLAUDE_CODE_DISABLE_AUTO_MEMORY=1</code> 与 <code>settingSources: []</code> 已落地；退出后临时目录为 0。</li>
+      <li><strong>DONE · 对话 SessionStore：</strong>已能从外部 Claude JSONL 恢复完整聊天；下一步只有在确实需要时才增加 AgentBay 工作目录快照。</li>
+      <li><strong>DONE · 临时 App / 人工接管：</strong>静态目录发布、Pro 直链契约、Basic 云浏览器回退、反馈与统一 TTL 回收已落地；无需新增依赖。</li>
+      <li><strong>DONE · LAN Demo 入口：</strong>已实现私有 LAN 直连、完整命令面板、新手引导、受限 resume 与安全 exit；无新增依赖。</li>
+      <li><strong>P1 · 生产入口：</strong>在当前 LAN Demo 前增加 HTTPS 身份代理、团队账号、审计与速率限制；只有并发规模证明 750ms 轮询不足时才换 SSE/WebSocket。</li>
+      <li><strong>P1 · 增加运行边界：</strong>除现有 <code>maxTurns</code> 与 10 分钟沙盒空闲回收外，再为每次 <code>query()</code> 增加挂钟超时与 <code>AbortController</code>，从每代理 1 GiB RAM、5 GiB 磁盘、1 CPU 起做实测。</li>
+      <li><strong>P1 · 上生产前加固：</strong>轮换已粘贴的 AgentBay key，把凭据移入密钥管理器/出站代理，配置网络 allowlist、OTEL、每会话成本和创建/销毁/超时告警。</li>
+    </ol>
+    <div class="buttons"><button class="secondary" id="copy-hosting-next">复制 Hosting 下一步</button></div>
+  </section>
+
+  <section aria-labelledby="scope-title">
+    <h2 id="scope-title">刻意没有加入</h2>
+    <p>这是无登录的 LAN Hello World Demo，因此没有加入数据库、团队账号、RBAC、多租户、TLS、互联网暴露、消息级审计、生产对象存储或 AgentBay 工作目录快照。预览仅服务静态目录；动态后端和长期公开展示应使用受保护的部署平台或 OSS。</p>
+    <div class="buttons"><button class="secondary" id="copy-summary">复制本报告摘要（Markdown）</button></div>
+  </section>
+
+  <section aria-labelledby="eval-title">
+    <h2 id="eval-title">Agent 自评 · 4.8 / 5</h2>
+    <table>
+      <thead><tr><th>维度</th><th>分数</th><th>证据</th></tr></thead>
+      <tbody>
+        <tr><td>准确性</td><td>5 / 5</td><td>没有把 Basic 的付费 GetLink 冒充可用；真实探测后自动改用 resourceUrl，接管页 HTTP 200</td></tr>
+        <tr><td>完整性</td><td>4 / 5</td><td>生成、预览、接管、反馈、停止、TTL 闭环；静态 App 范围内完整，动态后端明确留待后续</td></tr>
+        <tr><td>清晰度</td><td>5 / 5</td><td>预览卡区分 DIRECT/BROWSER；命令、到期时间、反馈与停止动作始终可见</td></tr>
+        <tr><td>可行动性</td><td>5 / 5</td><td>最终团队待办已在系统浏览器打开；同事现在即可接管测试并从 Web 提交反馈</td></tr>
+        <tr><td>简洁性</td><td>5 / 5</td><td>Node 标准库 + 单静态 HTML，无新增依赖、数据库、Web 框架或不必要的 WebSocket</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px;color:var(--soft)"><strong>Critical issues：</strong>无。<strong>自检：</strong>23/23、<code>/new</code> 旧消息清零、Basic 回退与 Chrome HITL 通过、错误脱敏。<strong>Top improvements：</strong>如需恢复历史 UI，再按归档 ID 做显式只读查看，不混入新会话。<strong>Verdict：</strong>deliver as-is。</p>
+  </section>
+
+  <footer class="foot">
+    <strong>来源项目：</strong>agentBayDemo · <strong>绝对路径：</strong>/Users/liushiyuwin/projects/agentBayDemo · <strong>Pi session ID：</strong>019fab5a-d1e5-7fbf-9707-409bad19b291
+  </footer>
+</main>
+<script>
+  const details = {
+    herdr: ["Herdr Web", "复用本机 127.0.0.1:7681 的 HTML 终端。网页按键直接进入 PTY；启动脚本始终使用 --no-focus 后台 tab。"],
+    ink: ["Ink TUI", "负责输入、流式展示、会话救援与全账户停机；/shutdown-all 必须带精确确认短语，不保存密钥。"],
+    sdk: ["Claude Agent SDK", "保持多轮 session resume，镜像 Claude JSONL 到外部 SessionStore，固定 gpt-5.6-luna、effort=low、thinking=disabled。"],
+    proxy: ["CLIProxyAPI", "仅监听 127.0.0.1:8318，由本机 helper 注入认证；已通过真实 SDK smoke。"],
+    agentbay: ["Alibaba Cloud AgentBay", "每个聊天会话独享一个 browser_latest；远程 Bash/文件、静态预览与 Browser 共用同一生命周期。普通 idle 10 分钟，预览 TTL 60 分钟。"]
+  };
+  document.querySelectorAll('.node').forEach(node => {
+    const show = () => {
+      const [title, text] = details[node.dataset.key];
+      document.getElementById('detail-title').textContent = title;
+      document.getElementById('detail-text').textContent = text;
+    };
+    node.addEventListener('click', show);
+    node.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); show(); } });
+  });
+
+  const setup = `install -d -m 700 ~/.config/agentbay
+read -rsp 'New AgentBay API key: ' key; echo
+printf '%s' "$key" > ~/.config/agentbay/api_key
+unset key
+chmod 600 ~/.config/agentbay/api_key`;
+  const smoke = `cd /Users/liushiyuwin/projects/agentBayDemo && npm run smoke`;
+  const followup = `AgentBay 旧密钥已在控制台禁用，新密钥已通过隐藏输入安全覆盖 ~/.config/agentbay/api_key；请再次运行 npm run smoke 做轮换后验收。`;
+  const webStart = `cd /Users/liushiyuwin/projects/agentBayDemo && npm run web`;
+  const webShare = `http://192.168.26.153:8787/`;
+  const webOpen = `open http://192.168.26.153:8787/`;
+  const previewCommand = `/preview /tmp/todo-preview 30100`;
+  const stopPreview = `/stop-preview`;
+  const tuiShutdown = `/shutdown-all SHUTDOWN ALL`;
+  const cliShutdown = `cd /Users/liushiyuwin/projects/agentBayDemo && npm run shutdown-all -- --confirm "SHUTDOWN ALL"`;
+  const summary = `# AgentBay Cloud Agent Demo 会话摘要\n\n- 项目：agentBayDemo（/Users/liushiyuwin/projects/agentBayDemo）\n- Pi session：019fab5a-d1e5-7fbf-9707-409bad19b291\n- 临时 App：前端完成后自动 publish_preview，不再只返回终端路径\n- Basic 兼容：GetLink 付费受限时，同一 browser_latest 打开 localhost App，resourceUrl 同时用于预览和人工接管\n- 命令：/preview <目录>、/takeover、/stop-preview；Web 卡提供打开、反馈、停止\n- 真实闭环：Todo App 生成→接管 HTTP 200→人工反馈迭代→停止回收→最终重发\n- 安全：仅 /tmp 或 /home/wuying、30100–30199、无 symlink/密钥文件、20 MiB 上限、60m TTL\n- 当前运行：全账户 0/10；参考 ¥0.00/h；SHUTDOWN_ALL 复核通过\n- /new：归档并销毁旧会话后，页面只保留 1 条新会话 NOTE，刷新不会恢复旧聊天\n- 验证：check PASS；23/23；覆盖率行92.83%、分支80.38%、函数87.96%；audit 0\n- LAN 控制台无登录，仅限可信 LAN；预览/接管 URL 是临时访问凭据`;
+  const hostingNext = `1. 把 Claude Agent SDK host 与 claude 子进程一起移入每会话 AgentBay 沙盒；Ink/Herdr 仅作客户端。\n2. 每会话使用唯一 cwd、CLAUDE_CONFIG_DIR，并设置 CLAUDE_CODE_DISABLE_AUTO_MEMORY=1；保留 settingSources: []。\n3. 对话 SessionStore 已完成；只有需要恢复远程文件时才新增 AgentBay 工作目录快照。\n4. LAN HTTP Demo 已完成；公网前增加 HTTPS 身份代理、团队账号、审计和速率限制。\n5. 只有并发压测证明 750ms 轮询不足时才换 SSE/WebSocket。\n6. 轮换已粘贴密钥，使用密钥管理器/出站代理、网络 allowlist、OTEL 与成本/生命周期告警。`;
+
+  async function copy(text, message) {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const area = document.createElement('textarea');
+      area.value = text; area.style.position = 'fixed'; area.style.opacity = '0';
+      document.body.appendChild(area); area.select(); document.execCommand('copy'); area.remove();
+    }
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    setTimeout(() => { if (toast.textContent === message) toast.textContent = ''; }, 3500);
+  }
+  document.getElementById('copy-setup').addEventListener('click', () => copy(setup, '已复制安全轮换命令；请在本机终端执行。'));
+  document.getElementById('copy-smoke').addEventListener('click', () => copy(smoke, '已复制轮换后验收命令。'));
+  document.getElementById('copy-followup').addEventListener('click', () => copy(followup, '已复制轮换完成 Prompt；可通过 Herdr 发给 Pi。'));
+  document.getElementById('copy-summary').addEventListener('click', () => copy(summary, '已复制 Markdown 摘要。'));
+  document.getElementById('copy-hosting-next').addEventListener('click', () => copy(hostingNext, '已复制 Hosting 下一步。'));
+  document.getElementById('copy-exit').addEventListener('click', () => copy('/exit', '已复制 /exit。'));
+  document.getElementById('copy-resume').addEventListener('click', () => copy('/resume /tmp/agentbay-demo-sessions/<session-id>.jsonl', '已复制 /resume 示例。'));
+  document.getElementById('copy-sandboxes').addEventListener('click', () => copy('/sandboxes', '已复制 /sandboxes。'));
+  document.getElementById('copy-bill').addEventListener('click', () => copy('/bill', '已复制 /bill。'));
+  document.getElementById('copy-web-start').addEventListener('click', () => copy(webStart, '已复制 Web 启动命令。'));
+  document.getElementById('copy-web-share').addEventListener('click', () => copy(webShare, '已复制无需登录的 LAN 地址。'));
+  document.getElementById('copy-web-open').addEventListener('click', () => copy(webOpen, '已复制本机打开命令。'));
+  document.getElementById('copy-preview').addEventListener('click', () => copy(previewCommand, '已复制 /preview 示例。'));
+  document.getElementById('copy-stop-preview').addEventListener('click', () => copy(stopPreview, '已复制停止预览命令。'));
+  document.getElementById('copy-preview-open').addEventListener('click', () => copy(webOpen, '已复制控制台打开命令；预览卡中可接管。'));
+  document.getElementById('copy-tui-shutdown').addEventListener('click', () => copy(tuiShutdown, '已复制 TUI 全量停机命令；执行前确认账户范围。'));
+  document.getElementById('copy-cli-shutdown').addEventListener('click', () => copy(cliShutdown, '已复制本机全量停机命令；执行前确认账户范围。'));
+</script>
+</body>
+</html>
