@@ -10,6 +10,7 @@ Hello World 级 TypeScript Demo：**Ink TUI 前端 + Claude Agent SDK 后端 + �
 
 - 完整 iMessage 气泡聊天：[`docs/handoff/agentbaydemo-full-imessage-chat.html`](docs/handoff/agentbaydemo-full-imessage-chat.html)
 - Pi 取证交接：[`docs/handoff/agentbaydemo-pi-session-imessage-handoff.html`](docs/handoff/agentbaydemo-pi-session-imessage-handoff.html)
+- WebApp UAT 交互快照总览：[`uat-artifacts/webapp/webapp-uat-overview.html`](uat-artifacts/webapp/webapp-uat-overview.html)
 - Playwright 未剪辑 WebM：[`uat-artifacts/webapp/webapp-live-uat.webm`](uat-artifacts/webapp/webapp-live-uat.webm)
 - Playwright 交互 trace：`uat-artifacts/webapp/webapp-trace.zip`
 
