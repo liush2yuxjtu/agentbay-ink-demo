@@ -42,19 +42,27 @@ Hello World 级 TypeScript Demo：**Ink TUI 前端 + Claude Agent SDK 后端 + �
 - `Ctrl+C`、Herdr tab 关闭、进程退出时主动删除沙盒
 - 通过 Herdr 的现有 HTML 终端交互，无需再造 WebSocket/Web 服务
 
-## AgentBay 配置
+## LLM 与 AgentBay 登录配置
 
-`scripts/with-runtime.sh` 会优先读取环境变量，或从 `~/.config/agentbay/api_key` 安全加载。首次使用时在 [AgentBay 控制台](https://agentbay.console.aliyun.com/service-management) 获取密钥，并避免让它进入 shell history：
+首次使用运行本机交互登录；密钥输入不回显，配置目录为 `0700`，文件为 `0600`：
 
 ```bash
-install -d -m 700 ~/.config/agentbay
-read -rsp 'AgentBay API key: ' key; echo
-printf '%s' "$key" > ~/.config/agentbay/api_key
-unset key
-chmod 600 ~/.config/agentbay/api_key
+npm run login          # 等价：npm run agentbay:login
+npm run auth:status    # 只显示 configured/missing 与来源，不显示值
 ```
 
-CLIProxyAPI 同样由 `scripts/with-runtime.sh` 从 `~/.config/claudex` 自动、安全注入；项目不保存任何令牌。若密钥曾粘贴到聊天、issue 或日志，请立即在控制台轮换，再用上面的隐藏输入命令覆盖本地文件。
+登录依次配置：
+
+1. LLM Base URL；
+2. 凭据类型：自定义兼容 endpoint 通常用 `token`，直连 Anthropic 用 `api-key`；
+3. LLM API key/token；
+4. [AgentBay 控制台](https://agentbay.console.aliyun.com/service-management)生成的 API key；
+5. AgentBay region：`cn-hangzhou`、`ap-southeast-1` 或 `us-east-1`；
+6. 可选的本机 Aliyun CLI profile，用于只读查询 BSS 账单。
+
+LLM 配置保存在 `~/.config/agentbay-ink-demo/`，AgentBay key 沿用 `~/.config/agentbay/api_key`。运行时优先级是 **环境变量 → 本机登录文件 → 现有 `~/.config/claudex` fallback**；CI/容器可参考 `.env.example` 使用 `LLM_BASE_URL`、`LLM_API_KEY`、`LLM_AUTH_KIND`、`AGENTBAY_API_KEY`、`AGENTBAY_REGION_ID` 和 `ALIYUN_PROFILE`。
+
+> 登录命令只配置本机 Provider 凭据，不等于 Web 用户认证。LAN Web 仍是无 TLS 的可信局域网 Demo，因此故意不在浏览器收集或保存云端密钥。Aliyun AccessKey 也不由项目保存，应继续使用 `aliyun configure --profile <name>` 管理。若密钥曾粘贴到聊天、issue 或日志，请立即在对应控制台轮换后重新运行登录。
 
 ## 启动
 
@@ -173,9 +181,10 @@ TUI 状态行展示的是**已入账按量消费**，不是购买套餐支付了
 ## 验证
 
 ```bash
+npm run auth:status    # 检查 LLM/AgentBay 登录来源，不显示密钥
 npm run check          # 类型检查、生命周期/归档测试、构建
 npm run test:coverage  # Node 原生覆盖率
-npm run smoke          # CLIProxyAPI + Claude Agent SDK + AgentBay 工具验证
+npm run smoke          # 已配置 LLM + Claude Agent SDK + AgentBay 工具验证
 npm run rescue:smoke   # 保存 JSONL → 销毁 → 新沙盒 → 从外部文件恢复上下文
 npm run account:smoke  # 真实远端并行盘点 + 官方 BSS 按量消费导出
 npm run shutdown-all -- --confirm "SHUTDOWN ALL"  # 高风险：关闭账户全部 RUNNING 沙盒
@@ -207,6 +216,8 @@ AgentBay tools ──► 每会话一个 browser_latest 沙盒
 
 关键文件：
 
+- `scripts/auth.sh`：隐藏输入的本机 LLM/AgentBay 登录与脱敏状态检查
+- `scripts/with-runtime.sh`：环境、本机登录文件和 claudex fallback 的安全运行时装载
 - `src/index.tsx`：Ink 对话界面、命令和清理信号
 - `src/agent.ts`：Claude Agent SDK、GPT-5.6 策略、MCP 工具、流式事件
 - `src/agent-process.ts`：SDK 消息到安全执行轨迹的纯映射
@@ -227,6 +238,7 @@ AgentBay tools ──► 每会话一个 browser_latest 沙盒
 - `test/session-rescue.test.ts`：JSONL 合约、权限、损坏文件、命令和销毁顺序测试
 - `test/account-usage.test.ts`：远端分页、全量停机、资源估算、套餐排除、消费状态行与安全导出测试
 - `test/agent-process.test.ts`：SDK/tool 消息到安全执行轨迹的映射测试
+- `test/auth-config.test.ts`：登录权限、无回显、环境优先级、API-key/token 与 fallback 测试
 - `test/web-server.test.ts`：无 token 直连、跨站拒绝、CSP、命令面板、resume/exit/停机 API 测试
 - `scripts/with-runtime.sh`：本机代理与密钥文件安全注入
 - `scripts/start-herdr.sh`：`--no-focus` 启动 Herdr 后台 TUI

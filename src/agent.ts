@@ -41,7 +41,7 @@ function safeSdkEnv(configDir: string): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {};
   for (const key of [
     "PATH", "HOME", "TMPDIR", "USER", "SHELL", "LANG", "LC_ALL", "TERM",
-    "ANTHROPIC_BASE_URL", "ANTHROPIC_AUTH_TOKEN", "NO_PROXY", "no_proxy",
+    "ANTHROPIC_BASE_URL", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "NO_PROXY", "no_proxy",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC",
   ]) {
     if (process.env[key] !== undefined) env[key] = process.env[key];
