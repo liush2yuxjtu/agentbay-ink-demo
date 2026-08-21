@@ -11,7 +11,7 @@ import { PreviewApplication, type PreviewState } from "./preview/application.js"
 import { EphemeralSandbox, safeMessage } from "./sandbox.js";
 import type { SessionArchivePort } from "./session/application.js";
 
-export const MODEL = "gpt-5.6-luna";
+export const MODEL = process.env.AGENTBAY_LLM_MODEL?.trim() || "gpt-5.6-luna";
 export const EFFORT = "low" as const;
 export const REASONING = "disabled" as const;
 

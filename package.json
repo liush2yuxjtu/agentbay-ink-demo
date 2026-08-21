@@ -12,6 +12,7 @@
     "start": "npm run dev --",
     "herdr": "bash scripts/start-herdr.sh",
     "web": "bash scripts/with-runtime.sh node --env-file-if-exists=.env --import tsx src/web.ts",
+    "web:dev": "bash scripts/with-runtime.sh node --watch-path=src --watch-path=web --env-file-if-exists=.env --import tsx src/web.ts",
     "web:herdr": "bash scripts/start-web-herdr.sh",
     "login": "bash scripts/auth.sh login",
     "agentbay:login": "bash scripts/auth.sh login",
