@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Pitch · AgentBay Ink Demo</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2314151c'/%3E%3Ccircle cx='9' cy='16' r='4' fill='%23f0b429'/%3E%3Crect x='16' y='12' width='11' height='8' rx='1.5' fill='%235c6cf6'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Noto+Sans+SC:wght@400;600;700&family=Syne:wght@800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ink: #14151c;
+        --fog: #eceef6;
+        --mute: #9aa1b7;
+        --bay: #7b87ff;
+        --amber: #f0b429;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; background: #07080c; color: var(--fog); }
+      body {
+        font: 22px/1.35 "Noto Sans SC", "PingFang SC", sans-serif;
+        display: grid;
+        place-items: center;
+      }
+      .frame {
+        width: min(100vw, calc(100dvh * 16 / 9));
+        height: min(100dvh, calc(100vw * 9 / 16));
+        position: relative;
+        background: var(--ink);
+        overflow: hidden;
+      }
+      .slide {
+        display: none;
+        position: absolute;
+        inset: 0;
+        padding: 7vh 7vw;
+      }
+      .slide.on { display: flex; flex-direction: column; justify-content: center; }
+      .slide.media { padding: 0; background: #000; }
+      .kicker {
+        margin: 0 0 14px;
+        color: var(--amber);
+        font-family: "IBM Plex Mono", ui-monospace, monospace;
+        font-size: 1.6vmin;
+        letter-spacing: 0.18em;
+      }
+      h1 {
+        margin: 0;
+        font-family: Syne, "Noto Sans SC", sans-serif;
+        font-size: clamp(32px, 7.2vmin, 84px);
+        font-weight: 800;
+        line-height: 1.05;
+        letter-spacing: -0.04em;
+      }
+      .sub {
+        margin: 18px 0 0;
+        max-width: 22em;
+        color: var(--mute);
+        font-size: clamp(16px, 2.6vmin, 28px);
+      }
+      .media video {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        background: #000;
+      }
+      .caption {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        padding: 18px 28px 22px;
+        background: linear-gradient(transparent, #000c);
+        font-family: "IBM Plex Mono", ui-monospace, monospace;
+        font-size: 1.8vmin;
+        letter-spacing: 0.08em;
+      }
+      .hud {
+        position: fixed;
+        left: 16px;
+        right: 16px;
+        bottom: 14px;
+        z-index: 3;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        color: #9aa1b7;
+        font-family: "IBM Plex Mono", ui-monospace, monospace;
+        font-size: 11px;
+        pointer-events: none;
+      }
+      .hud a, .hud button {
+        pointer-events: auto;
+        color: inherit;
+        background: none;
+        border: 0;
+        font: inherit;
+        cursor: pointer;
+      }
+      .hud a { color: var(--bay); }
+      @media (prefers-reduced-motion: reduce) {
+        video { display: block; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="frame" id="deck">
+      <section class="slide on" data-hold="4200">
+        <p class="kicker">AGENTBAY INK DEMO · PITCH</p>
+        <h1>一句需求。<br />远程沙盒里出现能勾选的 TODO。</h1>
+        <p class="sub">BAY 是真实预览页。LOCAL 是把它做出来的控制台。空格 / 方向键翻页，F 全屏。</p>
+      </section>
+      <section class="slide media" data-video="bay">
+        <video
+          id="bay"
+          playsinline
+          preload="auto"
+          poster="./uat-artifacts/webapp/agentbay-todo-remote-browser-shot.png"
+          src="./uat-artifacts/webapp/agentbay-todo-preview-flow.webm"
+        ></video>
+        <div class="caption">PGM · BAY · 今日待办 · 空状态 / 添加 / 完成 / 筛选</div>
+      </section>
+      <section class="slide">
+        <p class="kicker">YOU JUST SAW</p>
+        <h1>不是 Hello World，<br />是能完成的「录制演示任务」。</h1>
+        <p class="sub">远程浏览器停在完成态。任务还在。筛选切过。这是应用，不是截图。</p>
+      </section>
+      <section class="slide media" data-video="local" data-max="22">
+        <video
+          id="local"
+          playsinline
+          preload="metadata"
+          poster="./uat-artifacts/webapp/agentbay-web-real-todo-final.png"
+          src="./uat-artifacts/webapp/agentbay-web-real-todo-flow.webm"
+        ></video>
+        <div class="caption">AUX · LOCAL · LAN 控制台执行过程 · 不是主画面</div>
+      </section>
+      <section class="slide">
+        <p class="kicker">WHY THIS REPO</p>
+        <h1>代码跑在 AgentBay，<br />人只负责提问和验收。</h1>
+        <p class="sub">独享 browser_latest 沙盒、MCP 工具、预览 TTL 回收。宿主机不执行业务命令。</p>
+      </section>
+      <section class="slide">
+        <p class="kicker">NEXT</p>
+        <h1>打开仓库，<br />或回到切换台。</h1>
+        <p class="sub">
+          <a href="https://github.com/liush2yuxjtu/agentbay-ink-demo">GitHub</a>
+          ·
+          <a href="./">落地页</a>
+        </p>
+      </section>
+    </main>
+    <div class="hud">
+      <span id="count">1 / 6</span>
+      <span>← → 翻页 · 空格下一页 · F 全屏</span>
+      <span>
+        <a href="./">落地页</a>
+        ·
+        <button type="button" id="fs">全屏</button>
+      </span>
+    </div>
+    <script>
+      const slides = [...document.querySelectorAll(".slide")];
+      const videos = {
+        bay: document.getElementById("bay"),
+        local: document.getElementById("local"),
+      };
+      let index = 0;
+      let timer;
+
+      function stopVideos() {
+        Object.values(videos).forEach((video) => {
+          video.pause();
+          video.currentTime = 0;
+        });
+      }
+
+      function show(next) {
+        index = (next + slides.length) % slides.length;
+        slides.forEach((slide, i) => slide.classList.toggle("on", i === index));
+        document.getElementById("count").textContent = `${index + 1} / ${slides.length}`;
+        clearTimeout(timer);
+        stopVideos();
+        const slide = slides[index];
+        const key = slide.dataset.video;
+        if (key) {
+          const video = videos[key];
+          const max = Number(slide.dataset.max || 0);
+          const play = () => video.play().catch(() => undefined);
+          video.onended = () => show(index + 1);
+          if (max) {
+            const cut = () => {
+              if (video.currentTime >= max) show(index + 1);
+            };
+            video.ontimeupdate = cut;
+          } else {
+            video.ontimeupdate = null;
+          }
+          play();
+          return;
+        }
+        const hold = Number(slide.dataset.hold || 0);
+        if (hold) timer = setTimeout(() => show(index + 1), hold);
+      }
+
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowRight" || event.key === " ") {
+          event.preventDefault();
+          show(index + 1);
+        }
+        if (event.key === "ArrowLeft") {
+          event.preventDefault();
+          show(index - 1);
+        }
+        if (event.key === "f" || event.key === "F") {
+          if (document.fullscreenElement) document.exitFullscreen?.();
+          else document.documentElement.requestFullscreen?.();
+        }
+      });
+      document.getElementById("fs").addEventListener("click", () => {
+        document.documentElement.requestFullscreen?.();
+      });
+      show(0);
+    </script>
+  </body>
+</html>

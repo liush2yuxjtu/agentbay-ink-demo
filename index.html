@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>AgentBay Ink Demo · 远程沙盒里的可点 TODO</title>
+    <meta
+      name="description"
+      content="一句需求，在阿里云 AgentBay 独享沙盒里写出中文 TODO App，再用远程浏览器验收。BAY 是真实预览页，LOCAL 是控制台执行过程。"
+    />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2314151c'/%3E%3Ccircle cx='9' cy='16' r='4' fill='%23f0b429'/%3E%3Crect x='16' y='12' width='11' height='8' rx='1.5' fill='%235c6cf6'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Noto+Sans+SC:wght@400;500;700&family=Syne:wght@700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --fog: #d8dcef;
+        --sheet: #f4f5fb;
+        --ink: #14151c;
+        --mute: #5c6378;
+        --line: #c9cedf;
+        --bay: #5c6cf6;
+        --bay-deep: #3f4ad6;
+        --amber: #f0b429;
+        --tally: #e23d3d;
+        --bezel: #1b1d27;
+        --screen: #0e1016;
+        --shadow: 0 28px 70px #14151c22;
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(1200px 480px at 80% -10%, #cfd6f5 0%, transparent 55%),
+          var(--fog);
+        color: var(--ink);
+        font: 16px/1.55 "Noto Sans SC", "PingFang SC", sans-serif;
+      }
+      a { color: var(--bay-deep); }
+      button, .btn { font: inherit; cursor: pointer; }
+      button:focus-visible,
+      a:focus-visible {
+        outline: 3px solid #5c6cf666;
+        outline-offset: 3px;
+      }
+      .wrap {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+      header.top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 18px 0 8px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: inherit;
+        text-decoration: none;
+        font-family: "IBM Plex Mono", ui-monospace, monospace;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+      }
+      .lamp {
+        width: 9px;
+        height: 9px;
+        border-radius: 99px;
+        background: var(--amber);
+        box-shadow: 0 0 0 4px #f0b42933;
+      }
+      nav {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        min-height: 38px;
+        padding: 0 13px;
+        border-radius: 999px;
+        border: 1px solid var(--ink);
+        background: var(--ink);
+        color: #f7f8fd;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .btn.ghost {
+        background: transparent;
+        color: var(--ink);
+      }
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(260px, 0.85fr) minmax(320px, 1.25fr);
+        gap: 28px 36px;
+        align-items: end;
+        padding: 28px 0 18px;
+      }
+      .kicker {
+        margin: 0 0 10px;
+        color: var(--bay-deep);
+        font-family: "IBM Plex Mono", ui-monospace, monospace;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+      }
+      h1 {
+        margin: 0 0 14px;
+        font-family: Syne, "Noto Sans SC", sans-serif;
+        font-size: clamp(34px, 5.4vw, 62px);
+        font-weight: 800;
+        line-height: 1.02;
+        letter-spacing: -0.04em;
+      }
+      .lede {
+        margin: 0 0 18px;
+        max-width: 38ch;
+        color: var(--mute);
+        font-size: 16px;
+      }
+      .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+      .kvm {
+        margin: 0;
+        background: var(--bezel);
+        border-radius: 22px;
+        box-shadow: var(--shadow);
+        color: #eceef6;
+        overflow: hidden;
+      }
+      .kvm-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        font-family: "IBM Plex Mono", ui-monospace, monospace;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        color: #9aa1b7;
+      }
+      .tally {
+        width: 8px;
+        height: 8px;
+        border-radius: 99px;
+        background: #3a3d4d;
+      }
+      .kvm.is-live .tally {
+        background: var(--tally);
+        box-shadow: 0 0 0 4px #e23d3d33;
+      }
+      .kvm-bar b { color: #eceef6; font-weight: 600; margin-left: auto; }
+      .screen {
+        position: relative;
+        background: var(--screen);
+        aspect-ratio: 16 / 9;
+      }
+      .screen video {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        background: #0e1016;
+        opacity: 0;
+        pointer-events: none;
+      }
+      .screen video.on {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .bus {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        padding: 10px;
+        background: #14161f;
+      }
+      .src {
+        appearance: none;
+        border: 0;
+        border-radius: 10px;
+        min-height: 54px;
+        padding: 8px 12px;
+        background: #232634;
+        color: #d5d8e6;
+        text-align: left;
+      }
+      .src small {
+        display: block;
+        margin-top: 2px;
+        color: #8b91a7;
+        font-size: 11px;
+        font-weight: 500;
+      }
+      .src.on {
+        background: var(--bay);
+        color: white;
+      }
+      .src.on small { color: #e4e7ff; }
+      .facts {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1px;
+        margin: 8px 0 36px;
+        background: var(--line);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        overflow: hidden;
+      }
+      .facts div {
+        padding: 16px 18px;
+        background: var(--sheet);
+      }
+      .facts b {
+        display: block;
+        font-family: "IBM Plex Mono", ui-monospace, monospace;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .facts span { color: var(--mute); font-size: 13px; }
+      .rail {
+        display: grid;
+        grid-template-columns: 140px 1fr 1fr 1fr;
+        gap: 0;
+        margin: 0 0 42px;
+        border-top: 2px solid var(--ink);
+      }
+      .rail > * {
+        padding: 18px 16px 8px 0;
+        border-right: 1px solid var(--line);
+      }
+      .rail > *:last-child { border-right: 0; padding-right: 0; }
+      .rail h2 {
+        margin: 0;
+        font-family: Syne, sans-serif;
+        font-size: 18px;
+      }
+      .rail h3 {
+        margin: 0 0 8px;
+        font-size: 15px;
+      }
+      .rail p { margin: 0; color: var(--mute); font-size: 14px; }
+      footer.site {
+        padding: 18px 0 36px;
+        color: var(--mute);
+        font-size: 12px;
+        border-top: 1px solid var(--line);
+      }
+      footer.site code {
+        font-family: "IBM Plex Mono", ui-monospace, monospace;
+        font-size: 11px;
+        color: var(--ink);
+      }
+      @media (max-width: 860px) {
+        .hero { grid-template-columns: 1fr; padding-top: 12px; }
+        .facts, .rail { grid-template-columns: 1fr 1fr; }
+        .rail > * { border-right: 0; border-bottom: 1px solid var(--line); }
+      }
+      @media (max-width: 560px) {
+        .facts, .rail { grid-template-columns: 1fr; }
+        h1 { font-size: 34px; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        html { scroll-behavior: auto; }
+        .screen video { transition: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="top">
+        <a class="brand" href="./">
+          <i class="lamp" aria-hidden="true"></i>
+          AGENTBAY INK DEMO
+        </a>
+        <nav>
+          <a class="btn ghost" href="./pitch.html">全屏 Pitch</a>
+          <a class="btn" href="https://github.com/liush2yuxjtu/agentbay-ink-demo">GitHub</a>
+        </nav>
+      </header>
+
+      <section class="hero">
+        <div>
+          <p class="kicker">CLOUD AGENT · REMOTE BROWSER</p>
+          <h1>远程沙盒里，长出能勾选的待办。</h1>
+          <p class="lede">
+            不是幻灯片，也不是控制台自拍。下面两路信号来自同一次
+            AgentBay 会话：BAY 是真实 TODO 预览页，LOCAL 是 LAN
+            控制台把应用做出来的过程。
+          </p>
+          <div class="actions">
+            <a class="btn" href="./pitch.html">全屏播放 Pitch</a>
+            <a class="btn ghost" href="https://github.com/liush2yuxjtu/agentbay-ink-demo">打开仓库</a>
+          </div>
+        </div>
+
+        <figure class="kvm" id="kvm">
+          <div class="kvm-bar">
+            <i class="tally" aria-hidden="true"></i>
+            PGM
+            <span>browser_latest</span>
+            <b id="pgm-label">BAY · 今日待办</b>
+          </div>
+          <div class="screen">
+            <video
+              id="vid-bay"
+              class="on"
+              controls
+              playsinline
+              preload="metadata"
+              poster="./uat-artifacts/webapp/agentbay-todo-remote-browser-shot.png"
+              src="./uat-artifacts/webapp/agentbay-todo-preview-flow.webm"
+            ></video>
+            <video
+              id="vid-local"
+              controls
+              playsinline
+              preload="metadata"
+              poster="./uat-artifacts/webapp/agentbay-web-real-todo-final.png"
+              src="./uat-artifacts/webapp/agentbay-web-real-todo-flow.webm"
+            ></video>
+          </div>
+          <div class="bus" role="tablist" aria-label="信号源">
+            <button class="src on" type="button" data-src="bay" aria-pressed="true">
+              BAY
+              <small>真实 TODO 预览页 · 29s</small>
+            </button>
+            <button class="src" type="button" data-src="local" aria-pressed="false">
+              LOCAL
+              <small>LAN 控制台执行过程</small>
+            </button>
+          </div>
+        </figure>
+      </section>
+
+      <section class="facts" aria-label="这次演示的硬事实">
+        <div><b>BAY</b><span>远程浏览器里的待办交互，含「录制演示任务」</span></div>
+        <div><b>LOCAL</b><span>控制台只证明执行过程，不充当主画面</span></div>
+        <div><b>30100</b><span>沙盒内预览端口，不在宿主机跑业务代码</span></div>
+        <div><b>TTL</b><span>预览到期后连同浏览器一并回收</span></div>
+      </section>
+
+      <section class="rail" aria-label="一次会话怎么走完">
+        <h2>一次会话</h2>
+        <div>
+          <h3>提问</h3>
+          <p>在 LAN Web 说一句：做中文 TODO App，要能添加、完成、筛选。</p>
+        </div>
+        <div>
+          <h3>沙盒执行</h3>
+          <p>Agent 只能调用 AgentBay MCP：写文件、跑命令、发布预览。</p>
+        </div>
+        <div>
+          <h3>远程验收</h3>
+          <p>同一 browser_latest 打开 127.0.0.1:30100，像真人一样点。</p>
+        </div>
+      </section>
+
+      <footer class="site">
+        来源项目：agentBayDemo ·
+        <code>/Users/liushiyuwin/projects/agentBayDemo</code><br />
+        Pi session ID：<code>01a0231d-d917-74b0-b4bc-f057ba5205a0</code>
+        · 仓库
+        <a href="https://github.com/liush2yuxjtu/agentbay-ink-demo">liush2yuxjtu/agentbay-ink-demo</a>
+        · 不在页面中放置临时预览链接。
+      </footer>
+    </div>
+    <script>
+      const kvm = document.getElementById("kvm");
+      const videos = {
+        bay: document.getElementById("vid-bay"),
+        local: document.getElementById("vid-local"),
+      };
+      const label = document.getElementById("pgm-label");
+      const names = { bay: "BAY · 今日待办", local: "LOCAL · 执行过程" };
+
+      function setLive() {
+        const playing = Object.values(videos).some((v) => !v.paused && !v.ended);
+        kvm.classList.toggle("is-live", playing);
+      }
+
+      function take(src) {
+        Object.entries(videos).forEach(([key, video]) => {
+          const on = key === src;
+          video.classList.toggle("on", on);
+          if (!on) video.pause();
+        });
+        document.querySelectorAll(".src").forEach((btn) => {
+          const on = btn.dataset.src === src;
+          btn.classList.toggle("on", on);
+          btn.setAttribute("aria-pressed", String(on));
+        });
+        label.textContent = names[src];
+        setLive();
+      }
+
+      document.querySelectorAll(".src").forEach((btn) => {
+        btn.addEventListener("click", () => take(btn.dataset.src));
+      });
+      Object.values(videos).forEach((video) => {
+        video.addEventListener("play", setLive);
+        video.addEventListener("pause", setLive);
+        video.addEventListener("ended", setLive);
+      });
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "1") take("bay");
+        if (event.key === "2") take("local");
+      });
+    </script>
+  </body>
+</html>

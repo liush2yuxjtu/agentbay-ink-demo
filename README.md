@@ -1,5 +1,7 @@
 # AgentBay Ink Cloud Agent Demo
 
+演示站：[GitHub Pages 落地页](https://liush2yuxjtu.github.io/agentbay-ink-demo/) · [全屏 Pitch](https://liush2yuxjtu.github.io/agentbay-ink-demo/pitch.html)
+
 Hello World 级 TypeScript Demo：**Ink TUI 前端 + Claude Agent SDK 后端 + 阿里云 AgentBay 独立远程沙盒**。这里把需求中的 “TUA / Inc TUA” 按 **TUI / Ink TUI** 实现。
 
 ## 最终界面与会话回放
