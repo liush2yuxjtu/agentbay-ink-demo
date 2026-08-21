@@ -1,13 +1,42 @@
+# Dependencies & build
 node_modules/
 dist/
+*.tsbuildinfo
+coverage/
+.nyc_output/
+
+# Secrets / local env
 .env
 .env.*
 !.env.example
+
+# Local agent, editor, and OS state
 .pi/
 .agent/
+.cursor/
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+reasonix.toml
+
+# Test / browser tooling output
 playwright-report/
 test-results/
+playwright/.cache/
+
+# Python
 __pycache__/
 *.pyc
+
+# Logs
 *.log
-.DS_Store
+logs/
+npm-debug.log*
+
+# Generated recording intermediates; keep curated webm/png/html evidence
+uat-artifacts/**/todo-preview-frames/
+uat-artifacts/**/contact-sheet/
+onepager/*-snapshot.png
