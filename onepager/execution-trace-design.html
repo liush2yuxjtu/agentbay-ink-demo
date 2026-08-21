@@ -1,0 +1,1149 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Execution Trace · 主聊天内嵌设计稿</title>
+    <style>
+      :root {
+        --paper: #f3f0e9;
+        --paper-2: #ebe7de;
+        --ink: #1c2229;
+        --muted: #6f777e;
+        --rule: #d5d0c5;
+        --teal: #167d77;
+        --teal-soft: #d8eeea;
+        --amber: #b96b18;
+        --amber-soft: #f5e3c8;
+        --coral: #c85545;
+        --navy: #151c25;
+        --navy-2: #202a35;
+        --navy-3: #2a3643;
+        --white: #fbfaf7;
+        --shadow: 0 24px 70px rgba(29, 34, 40, 0.14);
+        --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        background: var(--paper);
+        color: var(--ink);
+      }
+      body {
+        margin: 0;
+        font-family:
+          ui-sans-serif,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Avenir Next",
+          "Segoe UI",
+          sans-serif;
+        line-height: 1.55;
+        background:
+          radial-gradient(
+            circle at 88% 8%,
+            rgba(22, 125, 119, 0.1),
+            transparent 26rem
+          ),
+          linear-gradient(135deg, rgba(255, 255, 255, 0.35), transparent 42%),
+          var(--paper);
+      }
+      button {
+        font: inherit;
+      }
+      .page {
+        width: min(1260px, calc(100% - 40px));
+        margin: 0 auto;
+        padding: 34px 0 64px;
+      }
+      .freeze {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        min-height: 38px;
+        padding: 8px 12px;
+        border: 1px solid #d9b98e;
+        border-radius: 10px;
+        color: #7c4b17;
+        background: rgba(255, 248, 235, 0.82);
+        font:
+          700 11px/1.25 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .freeze strong {
+        color: var(--coral);
+      }
+      .freeze span {
+        font-weight: 500;
+        letter-spacing: 0;
+        text-transform: none;
+      }
+      header {
+        padding: 44px 0 34px;
+        border-bottom: 1px solid var(--rule);
+      }
+      .eyebrow {
+        color: var(--teal);
+        font:
+          700 12px/1.2 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+      h1 {
+        max-width: 850px;
+        margin: 12px 0 14px;
+        font:
+          500 clamp(42px, 7vw, 86px)/0.98 "Iowan Old Style",
+          "Palatino Linotype",
+          "Book Antiqua",
+          Georgia,
+          serif;
+        letter-spacing: -0.055em;
+      }
+      .lede {
+        max-width: 720px;
+        margin: 0;
+        color: #586168;
+        font-size: clamp(17px, 2vw, 21px);
+        line-height: 1.48;
+      }
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 22px;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 6px 10px;
+        border: 1px solid var(--rule);
+        border-radius: 999px;
+        color: var(--muted);
+        background: rgba(255, 255, 255, 0.42);
+        font:
+          700 11px/1 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+      }
+      .chip::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--teal);
+      }
+      .chip.warn::before {
+        background: var(--amber);
+      }
+      .chip.lock::before {
+        background: var(--coral);
+      }
+      section {
+        padding: 34px 0;
+        border-bottom: 1px solid var(--rule);
+      }
+      .section-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 18px;
+      }
+      h2 {
+        margin: 0;
+        font:
+          500 28px/1.1 "Iowan Old Style",
+          "Palatino Linotype",
+          Georgia,
+          serif;
+        letter-spacing: -0.025em;
+      }
+      .section-note {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .recommendation {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 18px;
+      }
+      .verdict {
+        padding: 20px 22px;
+        border-left: 4px solid var(--teal);
+        background: rgba(255, 255, 255, 0.66);
+        box-shadow: 0 10px 28px rgba(30, 38, 43, 0.05);
+      }
+      .verdict strong {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--teal);
+        font:
+          800 12px/1.2 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .verdict p {
+        margin: 0;
+        font:
+          500 22px/1.28 "Iowan Old Style",
+          "Palatino Linotype",
+          Georgia,
+          serif;
+      }
+      .principles {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .principle {
+        padding: 14px;
+        border: 1px solid var(--rule);
+        background: rgba(255, 255, 255, 0.28);
+      }
+      .principle b {
+        display: block;
+        margin-bottom: 3px;
+        font-size: 13px;
+      }
+      .principle span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .mock-stage {
+        padding: 18px;
+        border: 1px solid #c9c2b4;
+        background: #ded9cf;
+        box-shadow: var(--shadow);
+      }
+      .stage-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+        color: #5c635f;
+        font:
+          700 10px/1.2 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .stage-top .legend {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        letter-spacing: 0;
+        text-transform: none;
+        font-weight: 600;
+      }
+      .legend i {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--coral);
+        box-shadow: 0 0 0 3px rgba(200, 85, 69, 0.12);
+      }
+      .svg-wrap {
+        overflow: auto;
+        border: 1px solid #bcb4a7;
+        background: #c9c4ba;
+      }
+      svg {
+        display: block;
+        width: 100%;
+        min-width: 840px;
+        height: auto;
+      }
+      .mock-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 14px;
+      }
+      .mock-actions p {
+        margin: 0;
+        color: #646b6b;
+        font-size: 12px;
+      }
+      .mock-toggle {
+        cursor: pointer;
+        padding: 9px 12px;
+        border: 1px solid #8fa9a3;
+        border-radius: 8px;
+        color: #0e5b58;
+        background: #eef8f4;
+        font:
+          800 11px/1 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        transition:
+          transform 160ms var(--ease-out),
+          background-color 160ms ease-out;
+      }
+      .mock-toggle:hover {
+        background: #d8eeea;
+      }
+      .mock-toggle:active {
+        transform: scale(0.97);
+      }
+      .mock-toggle:focus-visible {
+        outline: 2px solid var(--teal);
+        outline-offset: 3px;
+      }
+      .mock-state {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        color: #5f686b;
+        font:
+          700 11px/1 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+      }
+      .mock-state::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--amber);
+      }
+      .mock-stage.is-expanded .mock-state::before {
+        background: var(--teal);
+      }
+      .mock-stage.is-expanded .mock-state::after {
+        content: " · expanded";
+        color: var(--teal);
+      }
+      .mock-stage:not(.is-expanded) .mock-state::after {
+        content: " · collapsed";
+        color: var(--amber);
+      }
+      .spec-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+      .spec-card {
+        min-height: 176px;
+        padding: 18px;
+        border: 1px solid var(--rule);
+        background: rgba(255, 255, 255, 0.44);
+      }
+      .spec-card .index {
+        color: var(--teal);
+        font:
+          800 11px/1 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+      }
+      .spec-card h3 {
+        margin: 14px 0 7px;
+        font:
+          700 16px/1.2 "Iowan Old Style",
+          "Palatino Linotype",
+          Georgia,
+          serif;
+      }
+      .spec-card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .state-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+      .state {
+        border: 1px solid var(--rule);
+        background: rgba(255, 255, 255, 0.35);
+      }
+      .state-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--rule);
+      }
+      .state-top b {
+        font-size: 13px;
+      }
+      .state-top code {
+        color: var(--muted);
+        font:
+          700 10px/1 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+      }
+      .state-body {
+        padding: 14px;
+      }
+      .state-body p {
+        margin: 0 0 12px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .trace-mini {
+        padding: 10px;
+        border: 1px solid #bac9c5;
+        border-radius: 8px;
+        color: #174f4a;
+        background: #e8f4f0;
+        font:
+          700 11px/1.35 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+      }
+      .trace-mini .line {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .trace-mini .line + .line {
+        margin-top: 6px;
+        padding-top: 6px;
+        border-top: 1px solid rgba(22, 125, 119, 0.18);
+      }
+      .trace-mini.expanded {
+        background: #f3f8f5;
+      }
+      .trace-mini.expanded .line {
+        justify-content: flex-start;
+        gap: 7px;
+      }
+      .trace-mini.expanded .line::before {
+        content: "✓";
+        color: var(--teal);
+      }
+      .trace-mini.busy {
+        border-color: #e0bb88;
+        color: #82500f;
+        background: #fbf0df;
+      }
+      .trace-mini.busy .line::before {
+        content: "◆";
+        color: var(--amber);
+      }
+      details {
+        border-top: 1px solid var(--rule);
+      }
+      summary {
+        cursor: pointer;
+        padding: 14px 0 0;
+        color: var(--teal);
+        font:
+          800 11px/1 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        list-style: none;
+      }
+      summary::-webkit-details-marker {
+        display: none;
+      }
+      summary::before {
+        content: "+";
+        display: inline-grid;
+        place-items: center;
+        width: 16px;
+        height: 16px;
+        margin-right: 7px;
+        border: 1px solid currentColor;
+        border-radius: 50%;
+      }
+      details[open] summary::before {
+        content: "−";
+      }
+      details p {
+        max-width: 76ch;
+        margin: 12px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .boundary {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      .boundary-card {
+        padding: 18px;
+        border: 1px solid var(--rule);
+      }
+      .boundary-card.approved {
+        border-color: #a7d0c8;
+        background: rgba(216, 238, 234, 0.48);
+      }
+      .boundary-card.blocked {
+        border-color: #e4b9ad;
+        background: rgba(250, 232, 226, 0.5);
+      }
+      .boundary-card b {
+        display: block;
+        margin-bottom: 8px;
+        font:
+          800 11px/1 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .boundary-card.approved b {
+        color: var(--teal);
+      }
+      .boundary-card.blocked b {
+        color: var(--coral);
+      }
+      .boundary-card ul {
+        margin: 0;
+        padding-left: 18px;
+        color: #5e666d;
+        font-size: 13px;
+      }
+      footer {
+        padding-top: 26px;
+        color: #7a817f;
+        font:
+          11px/1.7 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+      }
+      footer strong {
+        color: #505b5d;
+      }
+      @media (max-width: 900px) {
+        .recommendation,
+        .boundary {
+          grid-template-columns: 1fr;
+        }
+        .spec-grid,
+        .state-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 620px) {
+        .page {
+          width: min(100% - 24px, 1260px);
+          padding-top: 18px;
+        }
+        header {
+          padding: 30px 0 24px;
+        }
+        h1 {
+          font-size: 48px;
+        }
+        .principles {
+          grid-template-columns: 1fr;
+        }
+        .mock-stage {
+          padding: 10px;
+        }
+        .mock-actions {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <div class="freeze">
+        <span
+          ><strong>DESIGN ONLY</strong> · no API · no source integration ·
+          approval gate active</span
+        ><span>static mock v0.1</span>
+      </div>
+
+      <header>
+        <div class="eyebrow">AgentBay / conversation architecture</div>
+        <h1>把执行轨迹<br />放回主聊天。</h1>
+        <p class="lede">
+          建议：执行轨迹成为 Agent
+          回复内部的可折叠段落。默认只露出一句摘要；需要审计时，在原地展开，不再把用户赶到右侧栏。
+        </p>
+        <div class="meta">
+          <span class="chip">inline with answer</span>
+          <span class="chip warn">collapsed by default</span>
+          <span class="chip lock">mock only</span>
+        </div>
+      </header>
+
+      <section>
+        <div class="section-head">
+          <h2>01 · 设计结论</h2>
+          <span class="section-note"
+            >针对现有 `processSteps` / `EXECUTION TRACE`</span
+          >
+        </div>
+        <div class="recommendation">
+          <div class="verdict">
+            <strong>recommended placement</strong>
+            <p>
+              摘要贴着 Agent
+              最终答复，细节从同一条消息内展开。聊天叙事不断，审计信息仍然可见。
+            </p>
+          </div>
+          <div class="principles">
+            <div class="principle">
+              <b>同一语境</b><span>用户不需要在聊天和侧栏之间来回找证据。</span>
+            </div>
+            <div class="principle">
+              <b>默认安静</b><span>折叠时只占一行，不抢最终答案的注意力。</span>
+            </div>
+            <div class="principle">
+              <b>原地审计</b
+              ><span>展开后按时间顺序展示状态、工具和完成事件。</span>
+            </div>
+            <div class="principle">
+              <b>状态不丢失</b><span>执行中、完成、失败用同一组件表达。</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2>02 · 主聊天视觉 mock</h2>
+          <span class="section-note"
+            >下方按钮只改变 mock 状态，不连接项目运行时</span
+          >
+        </div>
+        <div class="mock-stage" id="mockStage">
+          <div class="stage-top">
+            <span>single conversation / proposed state</span>
+            <span class="legend"
+              ><i></i> execution trace nested in agent message</span
+            >
+          </div>
+          <div class="svg-wrap">
+            <svg
+              viewBox="0 0 1200 720"
+              role="img"
+              aria-label="执行轨迹嵌入主聊天的界面 mock"
+            >
+              <rect width="1200" height="720" fill="#151c25" />
+              <rect x="0" y="0" width="1200" height="62" fill="#1c2732" />
+              <circle cx="28" cy="31" r="6" fill="#c85545" />
+              <circle cx="48" cy="31" r="6" fill="#d8a144" />
+              <circle cx="68" cy="31" r="6" fill="#5bbf8a" />
+              <text
+                x="104"
+                y="27"
+                fill="#ecf3f0"
+                font-size="13"
+                font-weight="800"
+                font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+                letter-spacing="1.5"
+              >
+                AGENTBAY / CLOUD AGENT CONSOLE
+              </text>
+              <text
+                x="104"
+                y="45"
+                fill="#91a0aa"
+                font-size="11"
+                font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+              >
+                隔离执行 · 会话可救援 · process visible
+              </text>
+              <rect
+                x="1014"
+                y="18"
+                width="154"
+                height="28"
+                rx="14"
+                fill="#17362f"
+                stroke="#3c8e79"
+              />
+              <circle cx="1033" cy="32" r="5" fill="#65d197" />
+              <text
+                x="1046"
+                y="36"
+                fill="#a6e8c7"
+                font-size="11"
+                font-weight="800"
+                font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+              >
+                ● LIVE
+              </text>
+
+              <rect
+                x="30"
+                y="88"
+                width="1140"
+                height="52"
+                rx="8"
+                fill="#202a35"
+                stroke="#31404e"
+              />
+              <text
+                x="52"
+                y="111"
+                fill="#6bd1c7"
+                font-size="11"
+                font-weight="800"
+                font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+              >
+                STATUS
+              </text>
+              <text
+                x="52"
+                y="129"
+                fill="#d9e1e1"
+                font-size="13"
+                font-family="ui-sans-serif, sans-serif"
+              >
+                已完成远程验证，正在整理最终答复
+              </text>
+              <text
+                x="1060"
+                y="121"
+                fill="#8f9da5"
+                font-size="11"
+                text-anchor="end"
+                font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+              >
+                reasoning=disabled
+              </text>
+
+              <text
+                x="48"
+                y="176"
+                fill="#85939c"
+                font-size="11"
+                font-weight="800"
+                font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+                letter-spacing="1.2"
+              >
+                CONVERSATION
+              </text>
+              <line x1="48" y1="188" x2="1152" y2="188" stroke="#2b3743" />
+
+              <rect
+                x="650"
+                y="210"
+                width="490"
+                height="58"
+                rx="13"
+                fill="#275d72"
+              />
+              <text
+                x="672"
+                y="234"
+                fill="#bcecf1"
+                font-size="10"
+                font-weight="800"
+                font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+              >
+                YOU
+              </text>
+              <text
+                x="672"
+                y="254"
+                fill="#f1fbfb"
+                font-size="13"
+                font-family="ui-sans-serif, sans-serif"
+              >
+                在远程沙盒里创建 hello.ts 并运行它
+              </text>
+
+              <rect
+                x="48"
+                y="294"
+                width="1092"
+                height="334"
+                rx="14"
+                fill="#1d2730"
+                stroke="#3a4a53"
+              />
+              <circle cx="75" cy="324" r="11" fill="#55c992" />
+              <path
+                d="M70 324 l4 4 7-9"
+                fill="none"
+                stroke="#10241d"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <text
+                x="101"
+                y="322"
+                fill="#b9e9d3"
+                font-size="10"
+                font-weight="800"
+                font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+              >
+                AGENT
+              </text>
+              <text
+                x="101"
+                y="348"
+                fill="#f0f5f3"
+                font-size="15"
+                font-family="ui-sans-serif, sans-serif"
+              >
+                已在远程 AgentBay 沙盒中创建并运行 `hello.ts`。
+              </text>
+              <text
+                x="101"
+                y="372"
+                fill="#a9b8b6"
+                font-size="13"
+                font-family="ui-sans-serif, sans-serif"
+              >
+                真实输出：Hello AgentBay
+              </text>
+
+              <rect
+                id="traceCollapsed"
+                x="101"
+                y="398"
+                width="1030"
+                height="64"
+                rx="10"
+                fill="#e4f2ed"
+              />
+              <rect
+                x="101"
+                y="398"
+                width="5"
+                height="64"
+                rx="2.5"
+                fill="#42a98f"
+              />
+              <circle cx="128" cy="430" r="10" fill="#c2e3d7" />
+              <path
+                d="M125 426 l4 4 6-7"
+                fill="none"
+                stroke="#1a7766"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <text
+                x="151"
+                y="425"
+                fill="#15574e"
+                font-size="12"
+                font-weight="800"
+                font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+              >
+                EXECUTION TRACE
+              </text>
+              <text
+                x="151"
+                y="446"
+                fill="#4c776e"
+                font-size="11"
+                font-family="ui-sans-serif, sans-serif"
+              >
+                6 个可审计事件 · AgentBay/bash · 1.8s
+              </text>
+              <text
+                id="traceChevron"
+                x="1094"
+                y="438"
+                fill="#167d77"
+                font-size="18"
+                font-family="ui-sans-serif, sans-serif"
+              >
+                ⌄
+              </text>
+              <text
+                id="traceAction"
+                x="1035"
+                y="424"
+                fill="#167d77"
+                font-size="10"
+                font-weight="800"
+                text-anchor="end"
+                font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+              >
+                SHOW
+              </text>
+
+              <g id="traceExpanded" opacity="0" pointer-events="none">
+                <rect
+                  x="101"
+                  y="474"
+                  width="1030"
+                  height="130"
+                  rx="10"
+                  fill="#f2f8f5"
+                />
+                <line x1="151" y1="499" x2="1058" y2="499" stroke="#c8dfd6" />
+                <circle cx="128" cy="499" r="5" fill="#42a98f" />
+                <text
+                  x="151"
+                  y="503"
+                  fill="#2b6056"
+                  font-size="11"
+                  font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+                >
+                  规划 · 可验证步骤
+                </text>
+                <text
+                  x="1018"
+                  y="503"
+                  fill="#6e8f87"
+                  font-size="10"
+                  text-anchor="end"
+                  font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+                >
+                  0.2s
+                </text>
+                <line x1="151" y1="530" x2="1058" y2="530" stroke="#c8dfd6" />
+                <circle cx="128" cy="530" r="5" fill="#42a98f" />
+                <text
+                  x="151"
+                  y="534"
+                  fill="#2b6056"
+                  font-size="11"
+                  font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+                >
+                  AgentBay/bash · 执行远程命令
+                </text>
+                <text
+                  x="1018"
+                  y="534"
+                  fill="#6e8f87"
+                  font-size="10"
+                  text-anchor="end"
+                  font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+                >
+                  1.1s
+                </text>
+                <line x1="151" y1="561" x2="1058" y2="561" stroke="#c8dfd6" />
+                <circle cx="128" cy="561" r="5" fill="#42a98f" />
+                <text
+                  x="151"
+                  y="565"
+                  fill="#2b6056"
+                  font-size="11"
+                  font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+                >
+                  完成 · 输出已返回 · 不展示隐藏思维
+                </text>
+                <text
+                  x="1018"
+                  y="565"
+                  fill="#6e8f87"
+                  font-size="10"
+                  text-anchor="end"
+                  font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+                >
+                  0.5s
+                </text>
+                <text
+                  x="151"
+                  y="591"
+                  fill="#167d77"
+                  font-size="10"
+                  font-weight="800"
+                  font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+                >
+                  HIDE TRACE
+                </text>
+              </g>
+
+              <rect
+                x="48"
+                y="652"
+                width="1092"
+                height="42"
+                rx="9"
+                fill="#202a35"
+                stroke="#31404e"
+              />
+              <text
+                x="70"
+                y="678"
+                fill="#55c992"
+                font-size="11"
+                font-weight="800"
+                font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+              >
+                ASK
+              </text>
+              <text
+                x="115"
+                y="678"
+                fill="#778890"
+                font-size="12"
+                font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+              >
+                输入问题或 /help
+              </text>
+              <text
+                x="1098"
+                y="678"
+                fill="#7b8a90"
+                font-size="11"
+                text-anchor="end"
+                font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+              >
+                Esc 中止 · Ctrl+C 安全退出
+              </text>
+            </svg>
+          </div>
+          <div class="mock-actions">
+            <span class="mock-state" id="mockState">mock state</span>
+            <p>这是设计演示，不会触发 Agent、MCP、沙盒或真实聊天。</p>
+            <button class="mock-toggle" id="mockToggle" type="button">
+              展开 mock trace
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2>03 · 组件行为</h2>
+          <span class="section-note">同一组件覆盖三种状态</span>
+        </div>
+        <div class="state-grid">
+          <article class="state">
+            <div class="state-top">
+              <b>默认 / 完成</b><code>COLLAPSED</code>
+            </div>
+            <div class="state-body">
+              <p>最常见状态。只显示摘要、耗时、事件数量和展开入口。</p>
+              <div class="trace-mini">
+                <div class="line">
+                  <span>✓ EXECUTION TRACE</span><span>6 events · 1.8s</span>
+                </div>
+              </div>
+            </div>
+          </article>
+          <article class="state">
+            <div class="state-top"><b>用户查看</b><code>EXPANDED</code></div>
+            <div class="state-body">
+              <p>
+                在原 Agent 消息内部展开，按顺序显示状态、工具调用、完成结果。
+              </p>
+              <div class="trace-mini expanded">
+                <div class="line">规划 · 可验证步骤</div>
+                <div class="line">AgentBay/bash · 完成</div>
+                <div class="line">完成 · 输出已返回</div>
+              </div>
+            </div>
+          </article>
+          <article class="state">
+            <div class="state-top"><b>执行中</b><code>BUSY</code></div>
+            <div class="state-body">
+              <p>保持同一位置；摘要改为进行中，不把用户带到另一个区域。</p>
+              <div class="trace-mini busy">
+                <div class="line">
+                  <span>◆ EXECUTION TRACE</span><span>running…</span>
+                </div>
+                <div class="line">AgentBay/bash · 执行远程命令</div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2>04 · 评审窄门</h2>
+          <span class="section-note">批准前不落地</span>
+        </div>
+        <div class="boundary">
+          <div class="boundary-card approved">
+            <b>本稿包含</b>
+            <ul>
+              <li>主聊天内嵌 trace 的视觉层级</li>
+              <li>折叠 / 展开 / 执行中三态</li>
+              <li>状态、工具、耗时、完成事件的最小字段</li>
+              <li>内联 SVG mock；无外部资源</li>
+            </ul>
+          </div>
+          <div class="boundary-card blocked">
+            <b>本稿不包含</b>
+            <ul>
+              <li>不修改 `src/index.tsx` 或 `web/index.html`</li>
+              <li>不接真实 `processSteps`、API、MCP 或 WebSocket</li>
+              <li>不改变当前 TUI / Web 的行为</li>
+              <li>按钮仅切换本页面 mock，不产生真实执行</li>
+            </ul>
+          </div>
+        </div>
+        <details>
+          <summary>查看事实依据</summary>
+          <p>
+            当前仓库的执行轨迹由 `src/index.tsx` 中的 `processSteps`
+            独立渲染，并在 `web/index.html` 的侧栏呈现；本设计只针对“把它嵌入
+            Agent 回复”的信息架构，不代表已经修改实现。
+          </p>
+        </details>
+      </section>
+
+      <footer>
+        <strong>来源项目：</strong>agentBayDemo ·
+        /Users/liushiyuwin/projects/agentBayDemo<br />
+        <strong>Pi session ID：</strong
+        >01a0231d-d917-74b0-b4bc-f057ba5205a0<br />
+        <strong>状态：</strong>独立静态设计稿；无
+        API、无网络请求、无产品代码改动。<br />
+        <strong>文件：</strong
+        >/Users/liushiyuwin/projects/agentBayDemo/onepager/execution-trace-design.html
+      </footer>
+    </main>
+    <script>
+      const stage = document.querySelector("#mockStage");
+      const toggle = document.querySelector("#mockToggle");
+      const expanded = document.querySelector("#traceExpanded");
+      const collapsed = document.querySelector("#traceCollapsed");
+      const action = document.querySelector("#traceAction");
+      const chevron = document.querySelector("#traceChevron");
+      let isExpanded = false;
+
+      toggle.addEventListener("click", () => {
+        isExpanded = !isExpanded;
+        stage.classList.toggle("is-expanded", isExpanded);
+        expanded.setAttribute("opacity", isExpanded ? "1" : "0");
+        expanded.setAttribute("pointer-events", isExpanded ? "auto" : "none");
+        collapsed.setAttribute("height", isExpanded ? "214" : "64");
+        action.textContent = isExpanded ? "HIDE" : "SHOW";
+        chevron.textContent = isExpanded ? "⌃" : "⌄";
+        toggle.textContent = isExpanded ? "收起 mock trace" : "展开 mock trace";
+        document.querySelector("#mockState").textContent = isExpanded
+          ? "mock state · expanded"
+          : "mock state · collapsed";
+      });
+    </script>
+  </body>
+</html>

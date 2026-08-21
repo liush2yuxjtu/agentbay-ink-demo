@@ -1,0 +1,878 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>agentBayDemo · 真实 WebApp 分镜</title>
+    <style>
+      :root {
+        --bg: #f5f2ea;
+        --paper: #fffdf8;
+        --ink: #182126;
+        --muted: #617071;
+        --line: #d7ddd6;
+        --teal: #087f82;
+        --teal-soft: #e3f2ef;
+        --orange: #bd5f2d;
+        --green: #277852;
+        --shadow: 0 14px 34px #18212612;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          14px/1.6 system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+      a {
+        color: var(--teal);
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+      button,
+      a.button {
+        cursor: pointer;
+      }
+      button:focus-visible,
+      a:focus-visible,
+      input:focus-visible,
+      select:focus-visible {
+        outline: 3px solid #087f8240;
+        outline-offset: 2px;
+      }
+      main {
+        width: min(1080px, calc(100% - 28px));
+        margin: 0 auto;
+        padding: 28px 0 48px;
+      }
+      .eyebrow {
+        color: var(--teal);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      h1 {
+        margin: 7px 0 10px;
+        font-size: clamp(32px, 6vw, 56px);
+        line-height: 1.03;
+        letter-spacing: -0.05em;
+      }
+      .lede {
+        max-width: 760px;
+        margin: 0 0 16px;
+        color: var(--muted);
+        font-size: 17px;
+      }
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .meta strong {
+        color: var(--ink);
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 18px 0;
+      }
+      .button {
+        display: inline-flex;
+        align-items: center;
+        min-height: 36px;
+        padding: 7px 12px;
+        border: 1px solid var(--teal);
+        border-radius: 9px;
+        background: var(--teal);
+        color: #fff;
+        text-decoration: none;
+        font-weight: 750;
+      }
+      .button.secondary {
+        border-color: var(--line);
+        background: var(--paper);
+        color: var(--ink);
+      }
+      .button:hover {
+        filter: brightness(0.96);
+      }
+      .verdict {
+        margin: 22px 0 16px;
+        padding: 15px 17px;
+        border: 1px solid #b6d8d1;
+        border-left: 5px solid var(--teal);
+        border-radius: 12px;
+        background: var(--teal-soft);
+      }
+      .verdict strong {
+        display: block;
+        font-size: 16px;
+      }
+      .verdict span {
+        color: #496565;
+        font-size: 12px;
+      }
+      .panel {
+        margin-top: 14px;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--paper);
+        box-shadow: var(--shadow);
+      }
+      h2 {
+        margin: 0 0 12px;
+        font-size: 20px;
+      }
+      .flow {
+        overflow: auto;
+      }
+      .flow svg {
+        display: block;
+        min-width: 760px;
+        width: 100%;
+        height: auto;
+      }
+      .flow text {
+        font-family:
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+      .flow .label {
+        font-size: 14px;
+        font-weight: 800;
+      }
+      .flow .small {
+        font-size: 11px;
+      }
+      .manifest {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+      .manifest a {
+        display: block;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fff;
+      }
+      .manifest b {
+        display: block;
+        color: var(--ink);
+        font-size: 13px;
+      }
+      .manifest span {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        margin-top: 3px;
+      }
+      .video-wrap {
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #111;
+      }
+      .video-wrap video {
+        display: block;
+        width: 100%;
+        max-height: 560px;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+      .controls input,
+      .controls select {
+        min-height: 36px;
+        padding: 6px 9px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--ink);
+      }
+      .controls input {
+        flex: 1 1 240px;
+      }
+      .progress {
+        height: 7px;
+        margin: 10px 0 16px;
+        border-radius: 99px;
+        background: #e3e7e1;
+        overflow: hidden;
+      }
+      .progress i {
+        display: block;
+        height: 100%;
+        width: 0;
+        background: var(--teal);
+        transition: width 0.2s;
+      }
+      .shot-list {
+        display: grid;
+        gap: 10px;
+      }
+      .shot {
+        display: grid;
+        grid-template-columns: 74px minmax(0, 1fr) auto;
+        gap: 14px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 11px;
+        background: #fff;
+      }
+      .shot.done {
+        border-color: #91c6a9;
+        background: #f5fbf7;
+      }
+      .shot-time {
+        color: var(--muted);
+        font:
+          12px/1.4 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+      }
+      .shot-time b {
+        display: inline-block;
+        margin-top: 5px;
+        padding: 2px 6px;
+        border-radius: 99px;
+        background: var(--teal-soft);
+        color: var(--teal);
+        font: 10px system-ui;
+        font-weight: 800;
+      }
+      .shot h3 {
+        margin: 0 0 3px;
+        font-size: 16px;
+      }
+      .shot p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .shot-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .shot-cell {
+        padding: 8px;
+        border-radius: 8px;
+        background: #f7f8f4;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .shot-cell b {
+        display: block;
+        color: var(--ink);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .shot-cell em {
+        display: block;
+        margin-top: 3px;
+        color: var(--orange);
+        font-style: normal;
+        font-weight: 800;
+      }
+      .shot-actions {
+        display: flex;
+        align-items: flex-start;
+        gap: 7px;
+      }
+      .shot-actions button {
+        min-height: 30px;
+        padding: 5px 8px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: #fff;
+        color: var(--ink);
+        font-size: 11px;
+      }
+      .snapshot-link {
+        display: inline-block;
+        margin-top: 8px;
+        font-size: 12px;
+        font-weight: 800;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      .snapshot-link:hover {
+        color: var(--orange);
+      }
+      .footer {
+        margin-top: 20px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .footer code {
+        color: var(--ink);
+        overflow-wrap: anywhere;
+      }
+      @media (max-width: 720px) {
+        main {
+          width: min(100% - 20px, 680px);
+          padding-top: 18px;
+        }
+        .manifest {
+          grid-template-columns: 1fr;
+        }
+        .shot {
+          grid-template-columns: 1fr;
+        }
+        .shot-actions {
+          grid-column: 1;
+        }
+        .shot-grid {
+          grid-template-columns: 1fr;
+        }
+        .lede {
+          font-size: 15px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="eyebrow">agentBayDemo · 真实 WebApp 分镜</div>
+        <h1>从一句话，到远程沙盒里的可操作 TODO App。</h1>
+        <p class="lede">
+          主视频拍的是 AgentBay 远程浏览器里的真实 TODO
+          页面：空状态、添加任务、勾选完成、切换筛选。LAN
+          控制台录制只作为执行过程子产物，不再充当主演示。
+        </p>
+        <div class="actions">
+          <a
+            class="button"
+            href="http://192.168.26.254:8787/"
+            target="_blank"
+            rel="noreferrer"
+            >打开真实 WebApp</a
+          >
+          <a
+            class="button secondary"
+            href="../uat-artifacts/webapp/agentbay-todo-preview-flow.webm"
+            target="_blank"
+            rel="noreferrer"
+            >打开 TODO 预览视频</a
+          >
+          <a
+            class="button secondary"
+            href="agentbay-todo-shot-snapshots.html"
+            target="_blank"
+            rel="noreferrer"
+            >打开 SVG 子产物</a
+          >
+          <button class="button secondary" id="copy-all">复制全部分镜</button>
+        </div>
+        <div class="meta">
+          <span><strong>状态</strong> Web runtime ready</span
+          ><span
+            ><strong>入口</strong>
+            <code>http://192.168.26.254:8787/</code></span
+          ><span><strong>主视频</strong> 29s · 1280×720 · 12fps</span
+          ><span><strong>画幅</strong> 16:9 / 9:16 可裁切</span>
+        </div>
+      </header>
+
+      <section class="verdict">
+        <strong
+          >主画面是真实 TODO UI，不是 LAN 控制台，也不是静态 Onepager。</strong
+        ><span>验收看空状态、录制演示任务、勾选完成和筛选切换；控制台视频只证明执行过程。</span>
+      </section>
+
+      <section class="panel flow">
+        <h2>一图看懂</h2>
+        <svg
+          viewBox="0 0 1000 190"
+          role="img"
+          aria-label="提问、远程执行、预览、浏览器验收、回收流程"
+        >
+          <defs>
+            <marker
+              id="arrow"
+              viewBox="0 0 10 10"
+              refX="9"
+              refY="5"
+              markerWidth="7"
+              markerHeight="7"
+              orient="auto"
+            >
+              <path d="M0 0 10 5 0 10Z" fill="#087f82" />
+            </marker>
+          </defs>
+          <path
+            d="M180 95H230M380 95H430M580 95H630M780 95H830"
+            fill="none"
+            stroke="#087f82"
+            stroke-width="3"
+            marker-end="url(#arrow)"
+          />
+          <g>
+            <rect
+              x="15"
+              y="42"
+              width="165"
+              height="106"
+              rx="13"
+              fill="#fff0e6"
+              stroke="#e6b18e"
+            />
+            <text x="32" y="72" class="label" fill="#bd5f2d">1 · 提问</text>
+            <text x="32" y="101" class="small" fill="#617071">LAN Web</text>
+            <text x="32" y="122" class="small" fill="#617071">
+              自然语言 Prompt
+            </text>
+          </g>
+          <g>
+            <rect
+              x="230"
+              y="42"
+              width="165"
+              height="106"
+              rx="13"
+              fill="#e3f2ef"
+              stroke="#acd1c9"
+            />
+            <text x="247" y="72" class="label" fill="#087f82">2 · 执行</text>
+            <text x="247" y="101" class="small" fill="#617071">
+              AgentBay MCP
+            </text>
+            <text x="247" y="122" class="small" fill="#617071">
+              write / bash / trace
+            </text>
+          </g>
+          <g>
+            <rect
+              x="430"
+              y="42"
+              width="165"
+              height="106"
+              rx="13"
+              fill="#fff"
+              stroke="#d7ddd6"
+            />
+            <text x="447" y="72" class="label" fill="#182126">3 · 预览</text>
+            <text x="447" y="101" class="small" fill="#617071">
+              /tmp/todo-app
+            </text>
+            <text x="447" y="122" class="small" fill="#617071">
+              health check / TTL
+            </text>
+          </g>
+          <g>
+            <rect
+              x="630"
+              y="42"
+              width="165"
+              height="106"
+              rx="13"
+              fill="#e3f2ef"
+              stroke="#acd1c9"
+            />
+            <text x="647" y="72" class="label" fill="#087f82">4 · 验收</text>
+            <text x="647" y="101" class="small" fill="#617071">
+              browser_takeover
+            </text>
+            <text x="647" y="122" class="small" fill="#617071">
+              真实 TODO 交互
+            </text>
+          </g>
+          <g>
+            <rect
+              x="830"
+              y="42"
+              width="155"
+              height="106"
+              rx="13"
+              fill="#f4f7f2"
+              stroke="#b8cbb9"
+            />
+            <text x="847" y="72" class="label" fill="#277852">5 · 回收</text>
+            <text x="847" y="101" class="small" fill="#617071">
+              stop / archive
+            </text>
+            <text x="847" y="122" class="small" fill="#617071">STOPPED</text>
+          </g>
+        </svg>
+      </section>
+
+      <section class="panel">
+        <h2>会话子产物</h2>
+        <div class="manifest">
+          <a
+            href="agentbay-todo-shot-snapshots.html"
+            target="_blank"
+            rel="noreferrer"
+            ><b>SVG 分镜子产物 ↗</b
+            ><span>10 个可定位快照：#shot-1 至 #shot-10</span></a
+          >
+          <a
+            href="../uat-artifacts/webapp/agentbay-todo-preview-flow.webm"
+            target="_blank"
+            rel="noreferrer"
+            ><b>TODO 预览页视频 ↗</b
+            ><span>远程浏览器真实交互，29s · 1280×720</span></a
+          >
+          <a href="http://192.168.26.254:8787/" target="_blank" rel="noreferrer"
+            ><b>真实 WebApp 入口 ↗</b
+            ><span>当前运行的 agentBayDemo LAN Web</span></a
+          >
+          <a
+            href="../uat-artifacts/webapp/agentbay-todo-remote-browser-shot.png"
+            target="_blank"
+            rel="noreferrer"
+            ><b>远程浏览器 TODO 快照 ↗</b
+            ><span>完成态含「录制演示任务」</span></a
+          >
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>主视频 · 真实 TODO 预览页</h2>
+        <div class="video-wrap">
+          <video
+            controls
+            preload="metadata"
+            src="../uat-artifacts/webapp/agentbay-todo-preview-flow.webm"
+          ></video>
+        </div>
+        <div class="meta" style="margin-top: 10px">
+          <span
+            ><strong>内容</strong> 空状态 → 添加「录制演示任务」→ 勾选完成 →
+            全部 / 进行中 / 已完成筛选</span
+          >
+          <span
+            ><strong>文件</strong>
+            <a
+              href="../uat-artifacts/webapp/agentbay-todo-preview-flow.webm"
+              download
+              >下载 TODO 预览 WebM ↗</a
+            ></span
+          >
+          <span
+            ><strong>预览截图</strong>
+            <a
+              href="../uat-artifacts/webapp/agentbay-todo-remote-browser-shot.png"
+              target="_blank"
+              rel="noreferrer"
+              >含「录制演示任务」↗</a
+            ></span
+          >
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>执行过程子产物 · LAN 控制台</h2>
+        <p class="lede" style="margin-top: 0">
+          这是控制台执行轨迹，不是 TODO 页面本身。不要把它当成主演示视频。
+        </p>
+        <div class="video-wrap">
+          <video
+            controls
+            preload="metadata"
+            src="../uat-artifacts/webapp/agentbay-web-real-todo-flow.webm"
+          ></video>
+        </div>
+        <div class="meta" style="margin-top: 10px">
+          <span><strong>内容</strong> LAN Web Prompt、工具轨迹、预览发布</span>
+          <span
+            ><strong>文件</strong>
+            <a
+              href="../uat-artifacts/webapp/agentbay-web-real-todo-flow.webm"
+              download
+              >下载控制台 WebM ↗</a
+            ></span
+          >
+          <span
+            ><strong>控制台截图</strong>
+            <a
+              href="../uat-artifacts/webapp/agentbay-web-real-todo-final.png"
+              target="_blank"
+              rel="noreferrer"
+              >打开 ↗</a
+            ></span
+          >
+        </div>
+      </section>
+
+      <section class="panel" id="storyboard">
+        <h2>分镜</h2>
+        <div class="controls">
+          <input id="search" type="search" placeholder="搜索分镜、动作或旁白" />
+          <select id="act">
+            <option>全部幕</option>
+            <option>开场</option>
+            <option>生成</option>
+            <option>验收</option>
+            <option>收尾</option>
+          </select>
+          <select id="sort">
+            <option value="time">按时间</option>
+            <option value="title">按标题</option>
+          </select>
+        </div>
+        <div class="meta" id="progress-text">0/10 已完成</div>
+        <div class="progress"><i id="progress-bar"></i></div>
+        <div class="shot-list" id="shots"></div>
+      </section>
+
+      <footer class="footer">
+        来源项目：agentBayDemo ·
+        <code>/Users/liushiyuwin/projects/agentBayDemo</code><br />Pi session
+        ID：<code>01a0231d-d917-74b0-b4bc-f057ba5205a0</code
+        ><br />主视频：<code
+          >uat-artifacts/webapp/agentbay-todo-preview-flow.webm</code
+        ><br />执行过程子产物：<code
+          >uat-artifacts/webapp/agentbay-web-real-todo-flow.webm</code
+        ><br />主页面保持轻量；大媒体、图片和 SVG
+        作为相对路径子产物，逐项可见链接。
+      </footer>
+    </main>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <script>
+      const shots = [
+        {
+          id: 1,
+          act: "开场",
+          time: "00:00–00:05",
+          title: "一句需求，直接开场",
+          desc: "拍真实 LAN Web 输入框，不拍设置。",
+          picture: "create a TODO list app for me please",
+          action: "发送 Prompt。",
+          voice: "“我只说一句：做一个 TODO App。”",
+          overlay: "PROMPT",
+          hint: "快照：真实控制台状态。",
+        },
+        {
+          id: 2,
+          act: "开场",
+          time: "00:05–00:15",
+          title: "沙盒上线",
+          desc: "让观众看到 AgentBay 已就绪。",
+          picture: "LIVE / Remote capacity / Basic",
+          action: "等待 sandboxState=ready。",
+          voice: "“代码不会跑在本机，而是在独享远程沙盒。”",
+          overlay: "REMOTE / LIVE",
+          hint: "不拍密钥。",
+        },
+        {
+          id: 3,
+          act: "生成",
+          time: "00:15–00:28",
+          title: "工具轨迹出现",
+          desc: "轨迹嵌在 Agent 主消息内。",
+          picture: "write_file / bash / publish_preview",
+          action: "生成并验证 /tmp/todo-app/index.html。",
+          voice: "“过程也能被审计。”",
+          overlay: "EXECUTION TRACE",
+          hint: "不展示隐藏思维。",
+        },
+        {
+          id: 4,
+          act: "生成",
+          time: "00:28–00:45",
+          title: "结果摘要",
+          desc: "Agent 回复列出已验证功能。",
+          picture: "新增、完成、删除、筛选、localStorage",
+          action: "停留在主聊天区。",
+          voice: "“只报告已验证结果。”",
+          overlay: "RESULT ✓",
+          hint: "不要只拍口头承诺。",
+        },
+        {
+          id: 5,
+          act: "生成",
+          time: "00:45–00:58",
+          title: "预览卡出现",
+          desc: "显示目录、端口、状态和到期时间。",
+          picture: "TEMPORARY APP PREVIEW / BROWSER",
+          action: "点击打开并接管云浏览器。",
+          voice: "“Basic 通过浏览器回退打开预览。”",
+          overlay: "PREVIEW READY",
+          hint: "不复制 authcode。",
+        },
+        {
+          id: 6,
+          act: "验收",
+          time: "00:58–01:08",
+          title: "浏览器接管",
+          desc: "从控制台切入远程浏览器。",
+          picture: "browser_latest / 今日待办",
+          action: "打开云浏览器。",
+          voice: "“现在像真实用户一样操作。”",
+          overlay: "BROWSER TAKEOVER",
+          hint: "不是本机 Playwright。",
+        },
+        {
+          id: 7,
+          act: "验收",
+          time: "01:08–01:22",
+          title: "添加任务",
+          desc: "用三条中文任务制造状态变化。",
+          picture: "写需求 / 完成前端 / 浏览器验收",
+          action: "输入并提交。",
+          voice: "“新增任务，列表马上变化。”",
+          overlay: "ADD TASK",
+          hint: "慢速移动鼠标和输入。",
+        },
+        {
+          id: 8,
+          act: "验收",
+          time: "01:22–01:35",
+          title: "完成、筛选、删除",
+          desc: "证明页面不是静态截图。",
+          picture: "勾选、切换筛选、删除",
+          action: "展示剩余数量和筛选结果。",
+          voice: "“结果能被操作，才算完成。”",
+          overlay: "INTERACTIVE ✓",
+          hint: "每个状态停留 1 秒。",
+        },
+        {
+          id: 9,
+          act: "收尾",
+          time: "01:35–01:52",
+          title: "反馈继续迭代",
+          desc: "反馈回到同一个 Agent 会话。",
+          picture: "预览反馈：让完成态更清晰",
+          action: "提交反馈，等待重新发布。",
+          voice: "“反馈不需要重开项目。”",
+          overlay: "FEEDBACK LOOP",
+          hint: "反馈要具体可验证。",
+        },
+        {
+          id: 10,
+          act: "收尾",
+          time: "01:52–02:00",
+          title: "安全回收",
+          desc: "结束时留下资源和归档证据。",
+          picture: "STOPPED / 归档路径",
+          action: "停止预览或 /exit。",
+          voice: "“用完回收资源，下一次还能恢复会话。”",
+          overlay: "STOPPED · ARCHIVED",
+          hint: "最后保留状态画面。",
+        },
+      ];
+      const $ = (id) => document.getElementById(id),
+        state = { done: new Set() };
+      const snap = (shot) =>
+        `agentbay-todo-shot-snapshots.html#shot-${shot.id}`;
+      const md = (shot) =>
+        `### 镜头 ${shot.id}｜${shot.time}｜${shot.title}\n- 画面：${shot.picture}\n- 操作：${shot.action}\n- 旁白：${shot.voice}\n- 快照：${snap(shot)}`;
+      function render() {
+        const q = $("search").value.trim().toLowerCase(),
+          act = $("act").value,
+          sort = $("sort").value;
+        const list = shots
+          .filter(
+            (s) =>
+              (act === "全部幕" || s.act === act) &&
+              (!q || Object.values(s).join(" ").toLowerCase().includes(q)),
+          )
+          .sort((a, b) =>
+            sort === "title"
+              ? a.title.localeCompare(b.title, "zh-CN")
+              : a.id - b.id,
+          );
+        $("shots").replaceChildren(
+          ...list.map((s) => {
+            const card = document.createElement("article");
+            card.className = "shot" + (state.done.has(s.id) ? " done" : "");
+            const time = document.createElement("div");
+            time.className = "shot-time";
+            time.append(s.time, document.createElement("br"));
+            const badge = document.createElement("b");
+            badge.textContent = s.act;
+            time.append(badge);
+            const body = document.createElement("div");
+            const h = document.createElement("h3");
+            h.textContent = `镜头 ${s.id}｜${s.title}`;
+            const p = document.createElement("p");
+            p.textContent = s.desc;
+            const link = document.createElement("a");
+            link.className = "snapshot-link";
+            link.href = snap(s);
+            link.target = "_blank";
+            link.rel = "noreferrer";
+            link.textContent = `查看镜头 ${s.id} SVG 快照 ↗`;
+            const grid = document.createElement("div");
+            grid.className = "shot-grid";
+            [
+              ["画面", s.picture],
+              ["操作", s.action],
+              ["旁白 / 贴片", s.voice + " · " + s.overlay],
+            ].forEach(([k, v]) => {
+              const cell = document.createElement("div");
+              cell.className = "shot-cell";
+              const b = document.createElement("b");
+              b.textContent = k;
+              const span = document.createElement("span");
+              span.textContent = v;
+              cell.append(b, span);
+              grid.append(cell);
+            });
+            body.append(h, p, link, grid);
+            const actions = document.createElement("div");
+            actions.className = "shot-actions";
+            const check = document.createElement("input");
+            check.type = "checkbox";
+            check.checked = state.done.has(s.id);
+            check.ariaLabel = `完成镜头 ${s.id}`;
+            check.addEventListener("change", () => {
+              check.checked ? state.done.add(s.id) : state.done.delete(s.id);
+              render();
+            });
+            const copy = document.createElement("button");
+            copy.textContent = "复制";
+            copy.addEventListener("click", () =>
+              navigator.clipboard?.writeText(md(s)),
+            );
+            actions.append(check, copy);
+            card.append(time, body, actions);
+            return card;
+          }),
+        );
+        const done = state.done.size;
+        $("progress-text").textContent = `${done}/${shots.length} 已完成`;
+        $("progress-bar").style.width = `${(done / shots.length) * 100}%`;
+      }
+      ["search", "act", "sort"].forEach((id) =>
+        $(id).addEventListener("input", render),
+      );
+      $("copy-all").addEventListener("click", () =>
+        navigator.clipboard?.writeText(
+          "# agentBayDemo 真实 WebApp 分镜\n\n" + shots.map(md).join("\n\n"),
+        ),
+      );
+      render();
+    </script>
+  </body>
+</html>
