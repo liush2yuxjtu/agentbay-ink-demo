@@ -36,7 +36,7 @@
     "ink-text-input": "6.0.0",
     "react": "19.2.8",
     "wuying-agentbay-sdk": "0.22.0",
-    "zod": "4.4.3"
+    "zod": "4.5.4"
   },
   "devDependencies": {
     "@types/node": "26.1.2",
